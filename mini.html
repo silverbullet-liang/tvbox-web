@@ -745,6 +745,16 @@ async function batchFetchDetails(items,concurrency=3){
   return results;
 }
 
+function pickDefaultSource(names,map){
+  if(!names||!names.length)return "";
+  const m=map||playerSources;
+  const byName=names.find(n=>/m3u8|hls/i.test(n));
+  if(byName)return byName;
+  const second=names.find(n=>/默认源2$/.test(n));
+  if(second)return second;
+  const byUrl=names.find(n=>{const a=m[n]||[];for(let i=0;i<a.length;i++){if(/(\.m3u8|\/hls\/|[?&]v=m3u8)/i.test(a[i].url||""))return true}return false});
+  return byUrl||names[0];
+}
 function parsePlayUrl(pu){
   const r={};if(!pu)return r;
   const blocks=pu.split("$$$");
@@ -1014,8 +1024,8 @@ async function openPlayer(it){
     document.getElementById("episodeGrid").innerHTML="";
   }else{
     names.forEach((n,i)=>{const btn=document.createElement("button");btn.className="source-tab"+(i===0?" active":"");btn.textContent=n;btn.addEventListener("click",()=>selSrc(n));tabs.appendChild(btn)});
-    selSrc(names[0]);
-    const eps=playerSources[names[0]]||[];
+    const defP=pickDefaultSource(names);selSrc(defP);
+    const eps=playerSources[defP]||[];
     if(eps.length>0)setTimeout(()=>playEp(0),80);
   }
   updateFsEpName();

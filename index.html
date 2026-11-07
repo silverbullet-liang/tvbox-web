@@ -1178,6 +1178,16 @@ async function batchFetchDetails(items,concurrency=3){
   }
   return results;
 }
+function pickDefaultSource(names,map){
+  if(!names||!names.length)return "";
+  const m=map||playerSources;
+  const byName=names.find(n=>/m3u8|hls/i.test(n));
+  if(byName)return byName;
+  const second=names.find(n=>/默认源2$/.test(n));
+  if(second)return second;
+  const byUrl=names.find(n=>{const a=m[n]||[];for(let i=0;i<a.length;i++){if(/(\.m3u8|\/hls\/|[?&]v=m3u8)/i.test(a[i].url||""))return true}return false});
+  return byUrl||names[0];
+}
 function parsePlayUrl(pu){
   const r={};if(!pu)return r;
   const blocks=pu.split("$$$");
@@ -1548,7 +1558,7 @@ async function openPlayer(it,opts){
   if(!names.length){tabs.innerHTML=`<div style="color:var(--on-sf-v);padding:12px;font-size:14px">暂无播放链接</div>`;document.getElementById("episodeGrid").innerHTML="";}
   else{
     names.forEach((n,i)=>{const btn=document.createElement("button");btn.className="source-tab"+(i===0?" active":"");btn.textContent=n;btn.addEventListener("click",()=>selSrc(n));tabs.appendChild(btn)});
-    const wantFrom=opts&&opts.playFrom&&playerSources[opts.playFrom]?opts.playFrom:names[0];
+    const wantFrom=opts&&opts.playFrom&&playerSources[opts.playFrom]?opts.playFrom:pickDefaultSource(names);
     selSrc(wantFrom);
     let wantEp=opts&&Number.isInteger(opts.episodeIndex)?opts.episodeIndex:0;
     if(opts&&opts.episodeName){const ee=playerSources[wantFrom]||[];const fi=ee.findIndex(x=>x.name===opts.episodeName);if(fi>=0)wantEp=fi;}

@@ -21,6 +21,7 @@
 ### 修复
 
 - 保留 v1.9.1-beta 对设置项覆盖导致脚本中断的修复。
+- 有多个播放线路时，默认选中 m3u8 线路（通常是「默认源2」），不再固定取第一条；判据依次为线路名含 m3u8/hls、名为「默认源2」、首集地址为 m3u8。Pro 与 Mini 一致。
 
 [2.0.0]: https://github.com/silverbullet-liang/tvbox-center/releases/tag/v2.0.0
 
