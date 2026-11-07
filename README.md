@@ -166,50 +166,6 @@ Pipeline: JSON → UTF-8 → **GZIP** → XOR → RC4 → **AES-GCM-256**. PBKDF
 
 > The key is never stored, uploaded or logged. Losing it makes the backup unrecoverable. Backup files contain chat records and profile data — keep them safe. Export/import requires `CompressionStream` (GZIP) and WebCrypto over **HTTPS or localhost**.
 
-## Component library
-
-`dist/tvbox-center.js` is a self-contained component library with all Pro features. It bundles **hls.js 1.7.3** and **mqtt.js 5.15.1** into the same file and exposes them as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`.
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
-<div id="tvbox-app" style="height:100vh"></div>
-<script>
-  TVBox.mount('#tvbox-app', { theme: 'purple' });
-</script>
-```
-
-In a Web Worker, `importScripts` the same file — only the vendor bundle is installed when `document` is absent:
-
-```js
-const worker = new Worker(URL.createObjectURL(new Blob([`
-  importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
-  const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-`], { type: 'application/javascript' })));
-```
-
-## Per-screen components (tvbox-ui.js)
-
-`dist/tvbox-ui.js` is split by screen: one method per screen, rendering only that screen. The bottom nav and top bar are hidden automatically.
-
-| Method | Renders |
-| --- | --- |
-| `TVBoxUI.home(el, opts)` | Home: history, favorites, carousel banner, recommendation grid |
-| `TVBoxUI.search(el, opts)` | Search: input, filters, results |
-| `TVBoxUI.settings(el, opts)` | Settings: sources, CORS proxy, playback, appearance |
-| `TVBoxUI.player(el, opts)` | Player: HLS, episodes, speed, aspect, casting |
-| `TVBoxUI.episodes(el, opts)` | Episode list only — pure rendering, no network |
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-ui.min.js"></script>
-
-<div id="home" style="height:100vh"></div>
-<script>TVBoxUI.home('#home', { theme: 'purple' });</script>
-```
-
-`item` is an item from the list API (`vod_id`, `vod_name`, `vod_play_url`, `_sourceKey`). `episodes` also accepts `playUrl` / `playFrom` separately, so it works without `item`.
-
-One instance per page; call `TVBoxUI.unmount()` before mounting another screen.
-
 ## CORS proxy
 
 All seven bundled sources no longer send `Access-Control-Allow-Origin`. Both Pro and Mini ship a three-level chain (Mini: Settings → Network):
@@ -248,7 +204,7 @@ const DEFAULT_SOURCES = [
 tvbox-center/
 ├── index.html          Pro edition (default entry)
 ├── promo.html          Single-file landing page
-├── dist/               CDN assets (component library with mqtt/hls, API SDK)
+├── dist/               CDN assets (API SDK)
 ├── mini.html           Mini edition
 ├── favicon.png         Site icon
 ├── LICENSE             Full AGPL-3.0 text
