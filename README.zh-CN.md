@@ -1,6 +1,6 @@
 # TVBox 影视资源中心
 
-[English](README.md) · **简体中文**
+[English](README.md) · **简体中文** · [CDN 使用说明](README.cdn.zh-CN.md)
 
 **纯前端 · 单文件 · 零构建** 的影视聚合播放器，界面基于 Material Design 3。
 

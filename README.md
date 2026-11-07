@@ -1,6 +1,6 @@
 # TVBox Media Center
 
-**English** · [简体中文](README.zh-CN.md)
+**English** · [简体中文](README.zh-CN.md) · [CDN guide](README.cdn.md)
 
 A **pure front-end, single-file, build-free** media aggregator player, built on Material Design 3.
 
