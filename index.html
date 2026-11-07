@@ -81,6 +81,18 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .section-action{font-size:13px;color:var(--p);cursor:pointer;font-weight:500}
 .h-scroll{display:flex;gap:12px;overflow-x:auto;padding:4px 0 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .h-scroll::-webkit-scrollbar{display:none}
+.home-banner{position:relative;display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 0 6px;scrollbar-width:none}
+.home-banner::-webkit-scrollbar{display:none}
+.hb-card{position:relative;flex:0 0 86%;max-width:520px;aspect-ratio:16/9;border-radius:16px;overflow:hidden;scroll-snap-align:start;background:var(--sf-v);cursor:pointer}
+.hb-card img{width:100%;height:100%;object-fit:cover;display:block}
+.hb-mask{position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(0,0,0,.78))}
+.hb-info{position:absolute;left:14px;right:14px;bottom:12px;color:#fff}
+.hb-title{font-size:17px;font-weight:700;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.hb-sub{font-size:12px;opacity:.85;margin-top:3px}
+.hb-badge{position:absolute;left:12px;top:12px;padding:3px 8px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600}
+.home-banner-dots{display:flex;gap:5px;justify-content:center;margin-top:2px}
+.hb-dot{width:5px;height:5px;border-radius:50%;background:var(--ol);transition:all .2s}
+.hb-dot.active{width:16px;border-radius:3px;background:var(--p)}
 .home-empty{padding:80px 20px 40px;text-align:center;color:var(--on-sf-v)}
 .home-empty iconify-icon{font-size:64px;opacity:.35;display:block;margin:0 auto 16px}
 .home-empty .t1{font-size:16px;font-weight:600;color:var(--on-sf);margin-bottom:6px}
@@ -502,6 +514,14 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         <div class="t1">还没有观看记录</div>
         <div class="t2">点击下方「搜索」查找影视<br>播放后的记录会出现在这里</div>
       </div>
+      <div class="section" id="homeBannerSection" style="display:none">
+        <div class="section-header">
+          <div class="section-title"><iconify-icon icon="lucide:flame"></iconify-icon>热门推荐</div>
+          <div class="section-action" id="homeBannerRefresh">换一批</div>
+        </div>
+        <div class="home-banner" id="homeBanner"></div>
+        <div class="home-banner-dots" id="homeBannerDots"></div>
+      </div>
       <div class="section" id="historySection" style="display:none">
         <div class="section-header">
           <div class="section-title"><iconify-icon icon="lucide:history"></iconify-icon>历史记录</div>
@@ -515,6 +535,12 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           <div class="section-action" id="viewAllFav">全部</div>
         </div>
         <div class="h-scroll" id="favHomeList"></div>
+      </div>
+      <div class="section" id="homeRecSection" style="display:none">
+        <div class="section-header">
+          <div class="section-title"><iconify-icon icon="lucide:sparkles"></iconify-icon>为你推荐</div>
+        </div>
+        <div class="media-grid" id="homeRecGrid"></div>
       </div>
     </div>
     <div class="page" id="pageSearch">
@@ -1219,13 +1245,84 @@ function showWelcome(){const m=document.getElementById("welcomeModal");if(m)m.cl
 function hideWelcome(){const m=document.getElementById("welcomeModal");if(m)m.classList.remove("show");}
 document.getElementById("modalOk").addEventListener("click",(e)=>{e.stopPropagation();hideWelcome();try{if(document.getElementById("modalNoShow").checked)safeSet("tvbox_no_welcome","1");}catch(err){}});
 document.getElementById("welcomeModal").addEventListener("click",(e)=>{if(e.target===e.currentTarget)hideWelcome();});
+
+let homeFeed=null,homeBannerTimer=null,homeBannerIdx=0;
+const HOME_FEED_KEY="tvbox_home_feed";
+function homeFeedCache(){
+  try{const raw=sessionStorage.getItem(HOME_FEED_KEY);if(!raw)return null;const o=JSON.parse(raw);if(!o||Date.now()-o.t>5*60*1000)return null;return o.list;}catch(e){return null}
+}
+function homeFeedSave(list){try{sessionStorage.setItem(HOME_FEED_KEY,JSON.stringify({t:Date.now(),list}))}catch(e){}}
+async function loadHomeFeed(force){
+  if(homeFeed&&!force){renderHomeFeed(homeFeed);return}
+  if(!force){const c=homeFeedCache();if(c&&c.length){homeFeed=c;renderHomeFeed(c);return}}
+  const srcs=enabledSrc();if(!srcs.length)return;
+  const grid=document.getElementById("homeRecGrid");
+  if(grid&&!homeFeed){grid.innerHTML="";grid.appendChild(skel(6,"lg"));}
+  const results=await Promise.all(srcs.map(s=>apiList(s,1,"","")));
+  const seen={},list=[];
+  results.forEach(r=>{if(!r.ok||!r.list)return;r.list.forEach(it=>{const k=it.vod_id+"|"+it._sourceKey;if(!seen[k]){seen[k]=1;list.push(it)}})});
+  list.sort((a,b)=>String(b.vod_time||"").localeCompare(String(a.vod_time||"")));
+  const top=list.slice(0,24);
+  if(!top.length){if(grid)grid.innerHTML="";return}
+  homeFeed=top;homeFeedSave(top);renderHomeFeed(top);
+}
+function renderHomeFeed(list){
+  const sec=document.getElementById("homeBannerSection"),rec=document.getElementById("homeRecSection");
+  const banner=document.getElementById("homeBanner"),dots=document.getElementById("homeBannerDots"),grid=document.getElementById("homeRecGrid");
+  if(!banner||!grid)return;
+  const withPic=list.filter(it=>it.vod_pic&&it.vod_pic.length>10&&!it.vod_pic.includes("noimg"));
+  const picks=(withPic.length?withPic:list).slice(0,5);
+  banner.innerHTML="";dots.innerHTML="";
+  picks.forEach((it,i)=>{
+    const d=document.createElement("div");d.className="hb-card";
+    const pic=it.vod_pic||"";
+    d.innerHTML=(pic?`<img src="${esc(pic)}" alt="" loading="lazy" onerror="this.style.display='none'">`:"")+`<div class="hb-mask"></div><span class="hb-badge">${esc(it.type_name||it._source||"推荐")}</span><div class="hb-info"><div class="hb-title">${esc(it.vod_name||"未知")}</div><div class="hb-sub">${esc(it.vod_remarks||it.vod_year||it._source||"")}</div></div>`;
+    d.addEventListener("click",()=>openPlayer(it));
+    banner.appendChild(d);
+    const dot=document.createElement("span");dot.className="hb-dot"+(i===0?" active":"");dots.appendChild(dot);
+  });
+  grid.innerHTML="";
+  list.slice(picks.length,picks.length+18).forEach(it=>grid.appendChild(createCard(it,"lg")));
+  if(sec)sec.style.display=picks.length?"block":"none";
+  if(rec)rec.style.display=list.length>picks.length?"block":"none";
+  const empty=document.getElementById("homeEmpty");
+  if(empty&&list.length)empty.style.display="none";
+  startBannerAuto();
+}
+function startBannerAuto(){
+  const banner=document.getElementById("homeBanner");if(!banner)return;
+  if(!banner.dataset.bound){
+    banner.dataset.bound="1";
+    let paused=false;
+    banner.addEventListener("pointerdown",()=>{paused=true});
+    banner.addEventListener("pointerup",()=>{setTimeout(()=>{paused=false},4000)});
+    banner.addEventListener("scroll",()=>{
+      const cards=banner.querySelectorAll(".hb-card");if(!cards.length)return;
+      let best=0,bd=1e9;
+      cards.forEach((c,i)=>{const d=Math.abs(c.offsetLeft-banner.scrollLeft);if(d<bd){bd=d;best=i}});
+      homeBannerIdx=best;
+      document.querySelectorAll(".hb-dot").forEach((d,i)=>d.classList.toggle("active",i===best));
+    },{passive:true});
+  }
+  clearInterval(homeBannerTimer);
+  homeBannerTimer=setInterval(()=>{
+    if(document.hidden)return;
+    const cards=banner.querySelectorAll(".hb-card");if(cards.length<2)return;
+    homeBannerIdx=(homeBannerIdx+1)%cards.length;
+    banner.scrollTo({left:cards[homeBannerIdx].offsetLeft,behavior:"smooth"});
+  },4500);
+}
+function refreshHomeFeed(){homeFeed=null;try{sessionStorage.removeItem(HOME_FEED_KEY)}catch(e){}loadHomeFeed(true);}
+document.getElementById("homeBannerRefresh").addEventListener("click",refreshHomeFeed);
+
 function renderHome(){
   const historySec=document.getElementById("historySection"),favSec=document.getElementById("favHomeSection"),empty=document.getElementById("homeEmpty"),historyList=document.getElementById("historyList"),favList=document.getElementById("favHomeList");
   const hasHistory=history.length>0,hasFav=favorites.length>0;
-  if(!hasHistory&&!hasFav){empty.style.display="block";historySec.style.display="none";favSec.style.display="none";return;}
-  empty.style.display="none";
+  if(!hasHistory&&!hasFav){empty.style.display="block";historySec.style.display="none";favSec.style.display="none";}
+  else empty.style.display="none";
   if(hasHistory){historySec.style.display="block";historyList.innerHTML="";const showCount=Math.min(HOME_PREVIEW_COUNT,history.length);for(let i=0;i<showCount;i++)historyList.appendChild(createCard(history[i],"sm"));if(history.length>HOME_PREVIEW_COUNT)historyList.appendChild(createMoreCard(history.length,"查看全部",openAllHistory));}else historySec.style.display="none";
   if(hasFav){favSec.style.display="block";favList.innerHTML="";const showCount=Math.min(HOME_PREVIEW_COUNT,favorites.length);for(let i=0;i<showCount;i++)favList.appendChild(createCard(favorites[i],"sm"));if(favorites.length>HOME_PREVIEW_COUNT)favList.appendChild(createMoreCard(favorites.length,"查看全部",openAllFav));}else favSec.style.display="none";
+  loadHomeFeed();
 }
 function isAllHistoryOpen(){const o=document.getElementById("allHistoryOverlay");return o&&o.classList.contains("show");}
 function openAllHistory(){document.getElementById("allHistoryOverlay").classList.add("show");renderAllHistory();}
