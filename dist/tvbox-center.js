@@ -161,6 +161,19 @@ if (typeof document !== "undefined") {
     state = null;
   }
 
+  // 自动挂载：页面存在 #tvbox-app 或 [data-tvbox-auto] 时，引入即运行；
+  // 否则保持为纯组件库，等宿主调用 TVBox.mount()。设 window.__TVBOX_AUTO__ = false 可关闭。
+  if (typeof document !== 'undefined') {
+    var __autoMount = function () {
+      if (global.__TVBOX_AUTO__ === false || state) return;
+      var el = document.querySelector('[data-tvbox-auto]') || document.getElementById('tvbox-app');
+      if (!el) return;
+      mount(el, global.__TVBOX_OPTS__ || {});
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', __autoMount);
+    else __autoMount();
+  }
+
   return { version: VERSION, mount: mount, unmount: unmount };
 });
 

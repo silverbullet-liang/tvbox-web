@@ -207,13 +207,15 @@ const DEFAULT_SOURCES = [
 
 ## 组件库 tvbox-center.js（含 Pro 全部功能）
 
-`dist/tvbox-center.js` 由 Pro 版重构而来，是**自包含组件库**：包含 Pro 的全部功能——多源搜索、HLS 播放器、一起看、加密备份、投屏（Chromecast / AirPlay）、选集与线路切换、倍速、画质画幅、主题换肤、历史、收藏、设置、键盘快捷键等。样式已作用域限定在容器内，不会污染宿主页面。引入后调用 `TVBox.mount(target, options)` 即可在任意页面挂载完整影视中心。
+`dist/tvbox-center.js` 由 Pro 版重构而来，是**自包含组件库**：包含 Pro 的全部功能——多源搜索、HLS 播放器、一起看、加密备份、投屏（Chromecast / AirPlay）、选集与线路切换、倍速、画质画幅、主题换肤、历史、收藏、设置、键盘快捷键等。样式已作用域限定在容器内，不会污染宿主页面。
+
+同一个文件既是**完整应用**也是**组件库**：页面里只要有 `<div id="tvbox-app">`（或任意带 `data-tvbox-auto` 属性的元素），引入脚本就会自动挂载并直接运行，不必写初始化代码；设 `window.__TVBOX_AUTO__ = false` 可关闭自动挂载，退回到纯 `TVBox.mount(target, options)` 用法。
 
 ### 标准 CDN 引入
 
 ```html
 <!-- jsDelivr · 锁定版本（生产环境推荐） -->
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v1.8.7/dist/tvbox-center.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
 
 <!-- jsDelivr · 跟随 main（始终最新） -->
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js"></script>
@@ -260,7 +262,7 @@ const Hls  = TVBoxCenter.hls;    // hls.js 1.7.3
 
 ```js
 const worker = new Worker(URL.createObjectURL(new Blob([`
-  importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v1.8.7/dist/tvbox-center.js');
+  importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
   const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 `], { type: 'application/javascript' })));
 ```
@@ -285,7 +287,7 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-sdk.min.js"></script>
 
 <!-- 锁定版本（生产环境建议） -->
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v1.2.0/dist/tvbox-sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-sdk.min.js"></script>
 
 <!-- raw 直链（GitHub 直出，无 CDN 缓存） -->
 <script src="https://raw.githubusercontent.com/silverbullet-liang/tvbox-center/main/dist/tvbox-sdk.js"></script>
