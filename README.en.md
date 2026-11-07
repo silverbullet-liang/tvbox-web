@@ -6,7 +6,7 @@ Open one HTML file in a browser to search, play and cast — no backend, no inst
 
 Two editions are provided:
 
-- **Pro (`index.html`)** — full-featured. Ships two data sources, casting, long-press speed, intro/outro skip, resume position and more.
+- **Pro (`index.html`)** — full-featured. Ships seven sources, all server-searchable, plus casting, long-press speed, intro/outro skip, resume position and more.
 - **Mini (`mini.html`)** — lightweight. A single data source, a leaner UI, suitable for low-end devices and quick deploys.
 
 License: `AGPL-3.0-or-later`
@@ -33,7 +33,7 @@ License: `AGPL-3.0-or-later`
 
 | Capability | Mini | Pro |
 | --- | :--: | :--: |
-| Bundled sources | 1 | 6 |
+| Bundled sources | 1 | 7 (all server-searchable) |
 | Parallel multi-source search | Yes | Yes |
 | Search suggestions | — | Yes |
 | HLS playback (hls.js) | Yes | Yes |
@@ -53,7 +53,7 @@ License: `AGPL-3.0-or-later`
 | Watch Together (MQTT chat / online users / unread badge) | — | Yes |
 | Watch Together shares (`TVC1:` / clipboard & search) | — | Yes |
 | Encrypted backup (`.tvcbak` export / import) | — | Yes |
-| Ad skip Beta (Worker pre-check / range hint / cancel) | — | Experimental |
+| Auto-skip ads (Worker pre-check / range hint / cancel) | — | Yes |
 | Themes (4 colors + dark/light) | Yes | Yes |
 | MiSans font | — | Yes |
 
@@ -131,7 +131,7 @@ Rooms are isolated per title using `sourceKey::vodId` — different sources for 
 
 The **Share** button builds a `TVC1:` string (JSON → deflate-raw → base64url) and copies it to the clipboard. The app recognizes it from the clipboard on load/focus, when pasted into the search box (press Enter), from a global paste, or via Settings → "Open from clipboard". Joining switches to the matching source, loads the title, selects the line/episode, seeks to the shared position, enters fullscreen and opens the sidebar.
 
-## Ad skip Beta (experimental)
+## Auto-skip ads
 
 For fixed-template ads inserted into the video stream, three local signals are combined:
 
@@ -141,7 +141,7 @@ For fixed-template ads inserted into the video stream, three local signals are c
 
 Pixel-level checks run in a Web Worker; the main thread only samples frames, computes audio features and runs the state machine, so playback is not blocked. When an ad is skipped, the player shows `已跳过广告 00:12.4 → 00:27.4` with a **Cancel** button that seeks back and disables auto-skip for the current episode.
 
-Off by default: **Settings → Playback → Ad skip Beta**.
+On by default: **Settings → Playback → Auto-skip ads**.
 
 Limits: only the current template is covered; a redesign requires updating the reference values; casino-themed films may be misdetected; Safari native HLS may fall back to visual-only. See [docs/adskip.md](docs/adskip.md) for the full design, thresholds and template update procedure.
 
@@ -152,7 +152,7 @@ Settings → **Data backup**:
 - **Export all data**: enter a key twice; produces `tvbox-backup-YYYYMMDD-HHmm.tvcbak`.
 - **Import backup**: pick a `.tvcbak` file and enter the export key.
 
-The backup covers favorites, settings, history, playback positions, profile (avatar / nickname), Watch Together switches, chat records and the full-library IndexedDB index.
+The backup covers favorites, settings, history, playback positions, profile (avatar / nickname), Watch Together switches, chat records.
 
 ```text
 magic(8) "TVCBAK1\0" | version(1) | flags(1) | salt(16) | iv(12) | AES-GCM ciphertext
@@ -182,6 +182,16 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
   const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 `], { type: 'application/javascript' })));
 ```
+
+## CORS proxy
+
+All seven bundled sources no longer send `Access-Control-Allow-Origin`. Pro uses a three-level chain:
+
+- **Auto (default)**: sources known to lack CORS go through `corsmirror.com`; others try direct for 4s, then fall back.
+- **Off**: direct only.
+- **Custom**: your own proxy, `{url}` placeholder supported.
+
+Only API calls are proxied; m3u8 and ts segments still connect directly.
 
 ## Data sources
 
