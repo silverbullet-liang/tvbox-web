@@ -2,9 +2,9 @@
 
 **English** · [简体中文](README.cdn.zh-CN.md)
 
-What is on the CDN and how to call it. For the player itself and project overview see [README.md](README.md).
+What is on the CDN and how to call it. For the player itself see [README.md](README.md).
 
-Licence: `AGPL-3.0-or-later`. CDN files are the same artifacts as the repo; version numbers match the [releases](https://github.com/silverbullet-liang/tvbox-center/releases).
+Licence: `AGPL-3.0-or-later`. CDN files match the repo; versions match the [releases](https://github.com/silverbullet-liang/tvbox-center/releases).
 
 ---
 
@@ -12,121 +12,112 @@ Licence: `AGPL-3.0-or-later`. CDN files are the same artifacts as the repo; vers
 
 | File | Contents | Size |
 | --- | --- | --- |
-| `dist/tvbox-center.min.js` | Component library, minified; mqtt.js and hls.js inlined | ~1.22 MB |
-| `dist/tvbox-center.js` | Component library, source | ~1.22 MB |
-| `dist/tvbox-sdk.min.js` | API SDK, minified — requests and parsing only | ~4 KB |
-| `dist/tvbox-sdk.js` | API SDK, source | ~8 KB |
-| `index.html` | Pro build, open directly or embed in an iframe | ~216 KB |
-| `mini.html` | Mini build, single source, lightweight | ~84 KB |
+| `dist/tvbox-center.min.js` | Component library (minified), hls.js and mqtt.js inlined | ~1.07 MB |
+| `dist/tvbox-center.js` | Component library (source) | ~1.08 MB |
+| `dist/tvbox-sdk.min.js` | API SDK (minified) | ~6 KB |
+| `dist/tvbox-sdk.js` | API SDK (source) | ~10 KB |
+| `index.html` | Pro build | ~216 KB |
+| `mini.html` | Mini build | ~84 KB |
 | `promo.html` | Landing page | ~34 KB |
 
-### Three ways to fetch
+The component library ships its own hls.js 1.7.3 and mqtt.js 5.15.1 — **no extra CDN tags needed**. Only the Cast SDK is fetched from Google, since there is no reliable self-hosted copy.
+
+### URLs
 
 ```html
-<!-- jsDelivr, pinned version (recommended, immutable) -->
+<!-- pinned (recommended) -->
 https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js
 
-<!-- jsDelivr, follow main (changes with every commit) -->
+<!-- follow main -->
 https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js
 
-<!-- GitHub raw (fallback) -->
+<!-- raw fallback -->
 https://raw.githubusercontent.com/silverbullet-liang/tvbox-center/main/dist/tvbox-center.min.js
 ```
 
-jsDelivr applies gzip / brotli on top of these files, so the transferred size is far below the numbers above.
+jsDelivr gzips / brotlis on top, so the wire size is roughly 300 KB.
 
 ---
 
 ## 2. Component library: TVBox.mount()
 
-One instance is a complete media centre: multi-source search, HLS playback, episodes and lines, speed and aspect, casting, Watch Together, encrypted backup, history, favorites, settings, keyboard shortcuts.
-
-### 2.1 Minimal usage
-
 ```html
 <div id="tvbox-app" style="height:100vh"></div>
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
-<script>
-  TVBox.mount('#tvbox-app');
-</script>
+<script>TVBox.mount('#tvbox-app');</script>
 ```
 
-The container must have a height (`height` or `min-height`); the internal layout is percentage-based and collapses to 0 otherwise.
+The container needs a height; the internal layout is percentage-based.
 
-### 2.2 Full options
+### Options
 
 ```js
-const app = TVBox.mount(target, {
+const app = TVBox.mount('#tvbox-app', {
   sources: [
     {
-      key: 'lzi',                                        // unique id, used for history / favorites
-      name: 'Quantum',                                   // display name
-      api: 'https://cj.lziapi.com/api.php/provide/vod/',  // MacCMS v10 endpoint, trailing slash optional
-      type: 1,                                           // 1 = movies/TV, default 1
-      enabled: true,                                     // default true
-      noProxy: false,                                    // mark sources resolved through a proxy
-      search: true,                                      // participate in server-side search
-      cors: false                                        // false = known to lack CORS, proxy in auto mode
+      key: 'lzi',                                         // unique id, keys history / favorites
+      name: 'Quantum',                                    // display name
+      api: 'https://cj.lziapi.com/api.php/provide/vod/',   // MacCMS v10 endpoint
+      type: 1,                                            // 1 = movies/TV
+      enabled: true,
+      search: true,                                       // participate in server-side search
+      cors: false                                         // false = known to lack CORS
     }
   ],
-  theme: 'purple'                                        // purple | yellow | green | blue
+  theme: 'purple'                                         // purple | yellow | green | blue
 });
 ```
 
 | Option | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `sources` | Array | 7 built-in sources | Passing it replaces the built-in set entirely |
-| `theme` | String | last saved theme | Initial palette: `purple` / `yellow` / `green` / `blue` |
+| `sources` | Array | 7 built-ins | Replaces the built-in set entirely |
+| `theme` | String | last saved | Initial palette |
 
-`key` distinguishes items with the same id and keys history / favorites — duplicates overwrite each other.
-
-### 2.3 Return value and unmounting
+### Return value
 
 ```js
-const app = TVBox.mount('#tvbox-app', { theme: 'blue' });
-
-app.id;              // 'tvbox-root' — the root node inserted into your container
-
-TVBox.version;       // '2.0.0'
-TVBox.unmount();     // removes the node and listeners; you can mount again
+app.id;           // 'tvbox-root'
+TVBox.version;    // '2.0.0'
+TVBox.unmount();  // remove and mount again later
 ```
 
-One instance per page. Calling `mount` again unmounts the previous one first.
+One instance per page; a second `mount` unmounts the first.
 
-### 2.4 Bundled libraries
-
-mqtt.js 5.15.1 and hls.js 1.7.3 are merged into the same file — no extra CDN tags needed:
+### Bundled libraries
 
 ```js
-TVBoxCenter.hls;    // hls.js namespace
-TVBoxCenter.mqtt;   // mqtt.js namespace
+TVBoxCenter.hls;    // hls.js 1.7.3
+TVBoxCenter.mqtt;   // mqtt.js 5.15.1
 ```
 
-The same file works inside a Worker (it loads the two libraries without running the UI):
+Also usable in a Worker (loads the libraries without running the UI):
 
 ```js
 importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
 const { hls, mqtt } = self.TVBoxCenter;
 ```
 
-### 2.5 Style isolation
+### Features
 
-All CSS is scoped to `#tvbox-root`; host `body`, `button`, `input` defaults are untouched. The only global side effect is one `<style data-tvbox="css">` node.
+- **Home**: continue watching, carousel banner (4.5s auto-rotate, swipeable, refresh), favorites, recommendation grid; merged from all sources, cached 5 minutes.
+- **Search**: parallel across sources, live suggestions after 2 characters, Enter or button, load more.
+- **Player**: hls.js / native HLS, line switching, episodes, seek, speed 0.5–2x, aspect (auto / 16:9 / 4:3 / fill / fit), fullscreen, picture-in-picture.
+- **Gestures**: horizontal seek, vertical volume, double-tap fullscreen, long-press 2x.
+- **Keyboard**: Space, ← →, J L, ↑ ↓, M, F, Esc.
+- **Watch Together**: per-title room over MQTT, chat, online count, unread badge, progress sync and follow, share link.
+- **Ad skip**: three-colour buttons + red/gold palette, jumps 15s with an undo action.
+- **History / favorites**: local storage, long-press a card to favorite.
+- **Settings**: 4 themes, per-source toggles, CORS proxy (auto / off / custom), 5 playback switches, intro/outro skip, default speed and aspect.
+- **Backup**: export / import `.tvcbak`, AES-GCM-256 + PBKDF2 (200k) + GZIP.
+- **Casting**: Chromecast.
 
-### 2.6 Runtime dependencies
-
-On first `mount` the library may load from CDN:
-
-- `hls.js` (skipped when `window.Hls` already exists)
-- `iconify-icon` (icons)
-- MiSans font CSS (optional, failure is harmless)
-- Cast SDK (optional, casting only)
+Everything is stored in the browser; nothing is uploaded.
 
 ---
 
 ## 3. API SDK: TVBoxSDK
 
-Requests and parsing only, no UI, ~4 KB minified. Useful for custom front-ends or data pipelines.
+Requests and parsing only, no UI, ~6 KB minified.
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-sdk.min.js"></script>
@@ -138,84 +129,60 @@ Node:
 const TVBoxSDK = require('./tvbox-sdk.min.js');
 ```
 
-### 3.1 Create a client
+### Client
 
 ```js
 const client = TVBoxSDK.create({
   sources: [
     { key: 'lzi', name: 'Quantum', api: 'https://cj.lziapi.com/api.php/provide/vod/' },
-    { api: 'https://cj.ffzyapi.com/api.php/provide/vod/' }   // api alone is fine
+    'https://cj.ffzyapi.com/api.php/provide/vod/'
   ],
+  cors: 'auto',        // auto | off | custom
+  proxy: '',           // used when cors === 'custom', {url} placeholder
   timeout: 12000
 });
 ```
 
-Each entry can be a URL string, an object, or a `TVBoxSDK.source(...)` instance.
+| Method | Description |
+| --- | --- |
+| `client.get(keyOrName)` | Get a source instance |
+| `client.add(src)` | Append a source |
+| `client.list(key, {page, wd, t})` | Single-source list / search |
+| `client.detail(key, id)` | Single-source detail |
+| `client.search(wd, {page, t})` | Parallel search, merged and de-duplicated, tagged with `_source` / `_sourceKey` / `_api` |
+| `client.suggest(wd, limit)` | Parallel suggestions |
 
-### 3.2 Lists and search
-
-```js
-// single source
-const r = await client.get('lzi').list({ page: 1, t: '' });
-// { ok, list, total, pagecount, error? }
-
-// parallel search across sources, merged, each item tagged with _source / _sourceKey / _api
-const items = await client.search('Inception');
-const page2 = await client.search('Inception', { page: 2 });
-
-// suggestions
-const words = await client.suggest('In', 10);
-```
-
-`t` is a MacCMS category id; empty means all.
-
-### 3.3 Detail
+### Single source
 
 ```js
-const detail = await client.get('lzi').detail('12345');
-// detail.vod_name / vod_pic / vod_year / vod_content
-// detail.vod_play_from / detail.vod_play_url
-```
+const src = TVBoxSDK.source({ api: 'https://cj.lziapi.com/api.php/provide/vod/' }, { timeout: 8000 });
 
-### 3.4 Standalone source
-
-```js
-const src = TVBoxSDK.source({
-  key: 'lzi',
-  api: 'https://cj.lziapi.com/api.php/provide/vod/'
-}, { timeout: 8000 });
-
-await src.list({ page: 1 });
+await src.list({ page: 1 });     // { ok, list, total, pagecount }
 await src.detail('12345');
 await src.suggest('In', 10);
-src.url({ ac: 'list', pg: 1 });   // URL only, no request
+src.url({ ac: 'list', pg: 1 });  // URL only
 ```
 
-### 3.5 Parsing helpers
+### Parsing helpers
 
 ```js
 TVBoxSDK.parseEpisodes('Ep01$https://a/1.m3u8#Ep02$https://a/2.m3u8');
-// [{ name: 'Ep01', url: 'https://a/1.m3u8' }, ...]
-
-TVBoxSDK.parsePlayUrls(detail.vod_play_url, detail.vod_play_from);
-// { 'Source A': [{ name, url }, ...], 'Source A m3u8': [...] }
-
-TVBoxSDK.buildUrl('https://x.com/api.php/provide/vod/', { ac: 'list', pg: 1 });
-// 'https://x.com/api.php/provide/vod/?ac=list&pg=1'
+TVBoxSDK.parsePlay(detail.vod_play_url, detail.vod_play_from);
+// { order: ['Source A', 'Source A m3u8'], groups: { name: [{name,url}] } }
+TVBoxSDK.parsePlayUrls(url, from);          // legacy, groups only
+TVBoxSDK.pickDefaultFrom(order, groups);    // prefers m3u8 (usually "默认源2")
+TVBoxSDK.buildUrl(api, { ac: 'list', pg: 1 });
+TVBoxSDK.proxyUrl(url, 'https://p.com/?url={url}');
+TVBoxSDK.request(url, timeout);
 ```
 
-### 3.6 Add sources at runtime
+### Proxy
 
-```js
-client.add({ key: 'new', name: 'New source', api: 'https://example.com/api.php/provide/vod/' });
-client.sources.forEach(s => console.log(s.key, s.name));
-```
+Same rules as the component library: in `auto`, sources with `cors: false` go straight through `corsmirror.com`, others try direct for 4s then fall back; `custom` uses your own endpoint.
 
 ---
 
 ## 4. Embedding the full app
-
-If you would rather not write mount code:
 
 ```html
 <iframe
@@ -227,24 +194,25 @@ If you would rather not write mount code:
 
 `mini.html` works the same way and is lighter.
 
-An iframe isolates styles and storage; the component library mounts inside your document, which is what you want when the container is yours and the page should share login state.
-
 ---
 
 ## 5. FAQ
 
-**CORS errors / empty search results?**
-Several sources stopped sending CORS headers. The component library proxies automatically through `corsmirror.com`; in Settings → CORS proxy you can supply your own endpoint (`{url}` placeholder supported). The SDK does not proxy — forward requests through your own backend.
+**CORS errors / no results?**
+Several sources stopped sending CORS headers; the library proxies automatically. Self-hosted: set your own endpoint under Settings → CORS proxy. The SDK does not proxy silently — use `cors: 'custom'` or forward through your backend.
 
 **Blank area after `mount`?**
-Check the container height first, then the console for blocked dependency scripts (hls.js / iconify come from public CDNs).
+Check the container height first, then the console. The library only needs `fetch` / `WebSocket` / `crypto.subtle`.
 
 **Two instances on one page?**
-Not supported. The second `mount` unmounts the first.
+Not supported; the second `mount` unmounts the first.
 
 **CDN and repo out of sync?**
-jsDelivr caches `@main`. Pin a version (`@v2.0.0`) to avoid it, or purge:
+jsDelivr caches `@main`. Pin a version, or purge:
 `https://purge.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js`.
+
+**Backup won't open?**
+Export / import need `crypto.subtle`, so HTTPS or localhost only.
 
 ---
 

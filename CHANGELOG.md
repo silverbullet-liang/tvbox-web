@@ -11,6 +11,10 @@
 - 自动跳过广告转为正式功能，默认开启。
 - 新增首页推荐：顶部滚动 banner（历史记录上方）与历史记录下方的「为你推荐」网格，数据取自 7 个源首页列表合并去重。
 - Mini 版新增「跨域代理」设置（自动 / 关闭 / 自定义），与 Pro 一致：设置 → 网络。
+- 组件库与 SDK 重写：`src/` 手写源码 + `build.py` 拼接，不再从 `index.html` 提取；`dist/tvbox-center.js` 内嵌 hls.js 1.7.3 与 mqtt.js 5.15.1，调用方无需再引其他 CDN。
+- 组件库功能对齐 Pro：首页推荐、多源搜索、播放器（选集 / 线路 / 倍速 / 画幅 / 画中画）、一起看（MQTT 聊天 + 进度同步）、加密备份、投屏、跳过广告。
+- `dist/tvbox-sdk.js` 同步重写：新增代理模式、`parsePlay`、`pickDefaultFrom`、`client.list` / `client.detail`。
+- 新增 CDN 文档中英两份：`README.cdn.md`、`README.cdn.zh-CN.md`。
 
 ### 变更
 
