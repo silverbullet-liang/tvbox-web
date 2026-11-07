@@ -168,7 +168,7 @@ Pipeline: JSON → UTF-8 → **GZIP** → XOR → RC4 → **AES-GCM-256**. PBKDF
 
 ## Component library
 
-`dist/tvbox-center.js` is self-contained: it works both as a **ready-to-run app** and as a **component library**. It bundles all Pro features, plus **hls.js 1.7.3** and **mqtt.js 5.15.1** in the same file, exposed as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`. If the page contains `<div id="tvbox-app">` (or any element with `data-tvbox-auto`), simply including the script mounts and starts it; set `window.__TVBOX_AUTO__ = false` to disable auto-mount and use `TVBox.mount()` manually.
+`dist/tvbox-center.js` is a self-contained component library with all Pro features. It bundles **hls.js 1.7.3** and **mqtt.js 5.15.1** into the same file and exposes them as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`.
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
@@ -186,6 +186,29 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
   const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 `], { type: 'application/javascript' })));
 ```
+
+## Per-screen components (tvbox-ui.js)
+
+`dist/tvbox-ui.js` is split by screen: one method per screen, rendering only that screen. The bottom nav and top bar are hidden automatically.
+
+| Method | Renders |
+| --- | --- |
+| `TVBoxUI.home(el, opts)` | Home: history, favorites, carousel banner, recommendation grid |
+| `TVBoxUI.search(el, opts)` | Search: input, filters, results |
+| `TVBoxUI.settings(el, opts)` | Settings: sources, CORS proxy, playback, appearance |
+| `TVBoxUI.player(el, opts)` | Player: HLS, episodes, speed, aspect, casting |
+| `TVBoxUI.episodes(el, opts)` | Episode list only — pure rendering, no network |
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-ui.min.js"></script>
+
+<div id="home" style="height:100vh"></div>
+<script>TVBoxUI.home('#home', { theme: 'purple' });</script>
+```
+
+`item` is an item from the list API (`vod_id`, `vod_name`, `vod_play_url`, `_sourceKey`). `episodes` also accepts `playUrl` / `playFrom` separately, so it works without `item`.
+
+One instance per page; call `TVBoxUI.unmount()` before mounting another screen.
 
 ## CORS proxy
 

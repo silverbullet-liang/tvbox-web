@@ -207,9 +207,7 @@ const DEFAULT_SOURCES = [
 
 ## 组件库 tvbox-center.js（含 Pro 全部功能）
 
-`dist/tvbox-center.js` 由 Pro 版重构而来，是**自包含组件库**：包含 Pro 的全部功能——多源搜索、HLS 播放器、一起看、加密备份、投屏（Chromecast / AirPlay）、选集与线路切换、倍速、画质画幅、主题换肤、历史、收藏、设置、键盘快捷键等。样式已作用域限定在容器内，不会污染宿主页面。
-
-同一个文件既是**完整应用**也是**组件库**：页面里只要有 `<div id="tvbox-app">`（或任意带 `data-tvbox-auto` 属性的元素），引入脚本就会自动挂载并直接运行，不必写初始化代码；设 `window.__TVBOX_AUTO__ = false` 可关闭自动挂载，退回到纯 `TVBox.mount(target, options)` 用法。
+`dist/tvbox-center.js` 由 Pro 版重构而来，是**自包含组件库**：包含 Pro 的全部功能——多源搜索、HLS 播放器、一起看、加密备份、投屏（Chromecast / AirPlay）、选集与线路切换、倍速、画质画幅、主题换肤、历史、收藏、设置、键盘快捷键等。样式已作用域限定在容器内，不会污染宿主页面。引入后调用 `TVBox.mount(target, options)` 即可在任意页面挂载完整影视中心。
 
 ### 标准 CDN 引入
 
@@ -275,6 +273,38 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
 - [tvbox-center.min.js](dist/tvbox-center.min.js) — 压缩版（约 1.16 MB，jsDelivr 会再 gzip）
 
 ---
+
+## 单界面组件 tvbox-ui.js
+
+`dist/tvbox-ui.js` 是**按界面拆分**的版本：不再是「挂载整站」，而是每个界面一个方法，只渲染自己那一屏，底部导航与顶部栏自动隐藏。
+
+| 方法 | 渲染内容 |
+| --- | --- |
+| `TVBoxUI.home(el, opts)` | 首页：历史、收藏、滚动 banner、推荐网格 |
+| `TVBoxUI.search(el, opts)` | 搜索页：输入、筛选、结果列表 |
+| `TVBoxUI.settings(el, opts)` | 设置页：数据源、跨域代理、播放行为、外观 |
+| `TVBoxUI.player(el, opts)` | 播放器：HLS、选集、倍速、画幅、投屏 |
+| `TVBoxUI.episodes(el, opts)` | 选集：只渲染剧集列表，纯展示、不联网 |
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-ui.min.js"></script>
+
+<!-- 只要首页 -->
+<div id="home" style="height:100vh"></div>
+<script>TVBoxUI.home('#home', { theme: 'purple' });</script>
+
+<!-- 只要播放器 -->
+<div id="player" style="height:100vh"></div>
+<script>TVBoxUI.player('#player', { item: vodItem, episode: 0 });</script>
+
+<!-- 只要选集 -->
+<div id="eps"></div>
+<script>TVBoxUI.episodes('#eps', { playUrl: item.vod_play_url, onPick: function (ep, i, from) { console.log(from, i, ep.url); } });</script>
+```
+
+`item` 与列表接口返回的作品对象一致（`vod_id`、`vod_name`、`vod_play_url`、`_sourceKey`）；`episodes` 也接受分离的 `playUrl` / `playFrom`（对应 `vod_play_url` / `vod_play_from`），不传 `item` 也能用。
+
+同一页面只支持一个实例，切换界面先调 `TVBoxUI.unmount()`。
 
 ## 接口 SDK tvbox-sdk.js
 
