@@ -26,7 +26,7 @@ The component library ships its own hls.js 1.7.3 and mqtt.js 5.15.1 — **no ext
 
 ```html
 <!-- pinned (recommended) -->
-https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js
+https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js
 
 <!-- follow main -->
 https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js
@@ -43,7 +43,7 @@ jsDelivr gzips / brotlis on top, so the wire size is roughly 300 KB.
 
 ```html
 <div id="tvbox-app" style="height:100vh"></div>
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js"></script>
 <script>TVBox.mount('#tvbox-app');</script>
 ```
 
@@ -93,7 +93,7 @@ TVBoxCenter.mqtt;   // mqtt.js 5.15.1
 Also usable in a Worker (loads the libraries without running the UI):
 
 ```js
-importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
+importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.js');
 const { hls, mqtt } = self.TVBoxCenter;
 ```
 
@@ -120,7 +120,7 @@ Everything is stored in the browser; nothing is uploaded.
 Requests and parsing only, no UI, ~6 KB minified.
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-sdk.min.js"></script>
 ```
 
 Node:

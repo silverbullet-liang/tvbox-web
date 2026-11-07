@@ -2,6 +2,13 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 与 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范。
 
+## [2.0.1] - 2026-11-07
+
+### 变更
+
+- CDN 与仓库版本号推进到 2.0.1。jsDelivr 对已发布 tag 的内容缓存不会在 tag 移动后立即刷新，改用新 tag 保证 `@v2.0.1` 一取即为重写后的产物。
+- 文档与宣传页中的 CDN 地址同步为 `@v2.0.1`。
+
 ## [2.0.0] - 2026-11-07
 
 ### 新增

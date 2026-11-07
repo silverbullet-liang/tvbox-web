@@ -26,7 +26,7 @@ CDN 上能拿到什么、怎么调。播放器源码见 [README.zh-CN.md](README
 
 ```html
 <!-- 锁定版本（推荐） -->
-https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js
+https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js
 
 <!-- 跟随 main -->
 https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js
@@ -43,7 +43,7 @@ jsDelivr 会再压一次 gzip / brotli，实际传输约 300 KB。
 
 ```html
 <div id="tvbox-app" style="height:100vh"></div>
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js"></script>
 <script>TVBox.mount('#tvbox-app');</script>
 ```
 
@@ -93,7 +93,7 @@ TVBoxCenter.mqtt;   // mqtt.js 5.15.1
 Worker 里也能用（只装载库，不跑 UI）：
 
 ```js
-importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
+importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.js');
 const { hls, mqtt } = self.TVBoxCenter;
 ```
 
@@ -120,7 +120,7 @@ const { hls, mqtt } = self.TVBoxCenter;
 只做接口请求与解析，不含 UI，压缩后约 6 KB。
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-sdk.min.js"></script>
 ```
 
 Node：

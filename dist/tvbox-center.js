@@ -8,7 +8,7 @@
  *
  * 用法：
  *   <div id="tvbox-app" style="height:100vh"></div>
- *   <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
+ *   <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js"></script>
  *   <script>TVBox.mount('#tvbox-app');</script>
  */
 (function (G) {
@@ -50,7 +50,7 @@ var h = module.exports; R.TVBoxCenter.hls = (h && h.isSupported) ? h : (h && h.d
 
 /* ============ core: 常量 / 工具 / 存储 / 主题 / 网络 / 解析 ============ */
 
-var VERSION = '2.0.0';
+var VERSION = '2.0.1';
 
 var DEFAULT_SOURCES = [
   { key: 'lzi',   name: '量子资源', api: 'https://cj.lziapi.com/api.php/provide/vod/',    type: 1, enabled: true, noProxy: true, search: true, cors: false },

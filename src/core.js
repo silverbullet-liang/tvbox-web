@@ -1,6 +1,6 @@
 /* ============ core: 常量 / 工具 / 存储 / 主题 / 网络 / 解析 ============ */
 
-var VERSION = '2.0.0';
+var VERSION = '2.0.1';
 
 var DEFAULT_SOURCES = [
   { key: 'lzi',   name: '量子资源', api: 'https://cj.lziapi.com/api.php/provide/vod/',    type: 1, enabled: true, noProxy: true, search: true, cors: false },

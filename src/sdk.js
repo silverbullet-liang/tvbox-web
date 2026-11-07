@@ -23,7 +23,7 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var VERSION = '2.0.0';
+  var VERSION = '2.0.1';
   var TIMEOUT = 12000;
   var CORS_MIRROR = 'https://corsmirror.com/v1?url=';
 
