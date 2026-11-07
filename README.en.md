@@ -54,6 +54,7 @@ License: `AGPL-3.0-or-later`
 | Watch Together shares (`TVC1:` / clipboard & search) | — | Yes |
 | Encrypted backup (`.tvcbak` export / import) | — | Yes |
 | Auto-skip ads (Worker pre-check / range hint / cancel) | — | Yes |
+| Home feed (carousel banner + recommendation grid) | — | Yes |
 | Themes (4 colors + dark/light) | Yes | Yes |
 | MiSans font | — | Yes |
 
