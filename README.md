@@ -166,6 +166,27 @@ Pipeline: JSON → UTF-8 → **GZIP** → XOR → RC4 → **AES-GCM-256**. PBKDF
 
 > The key is never stored, uploaded or logged. Losing it makes the backup unrecoverable. Backup files contain chat records and profile data — keep them safe. Export/import requires `CompressionStream` (GZIP) and WebCrypto over **HTTPS or localhost**.
 
+## Component library
+
+`dist/tvbox-center.js` is a self-contained component library with all Pro features. It bundles **hls.js 1.7.3** and **mqtt.js 5.15.1** into the same file and exposes them as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`.
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
+<div id="tvbox-app" style="height:100vh"></div>
+<script>
+  TVBox.mount('#tvbox-app', { theme: 'purple' });
+</script>
+```
+
+In a Web Worker, `importScripts` the same file — only the vendor bundle is installed when `document` is absent:
+
+```js
+const worker = new Worker(URL.createObjectURL(new Blob([`
+  importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
+  const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+`], { type: 'application/javascript' })));
+```
+
 ## CORS proxy
 
 All seven bundled sources no longer send `Access-Control-Allow-Origin`. Both Pro and Mini ship a three-level chain (Mini: Settings → Network):

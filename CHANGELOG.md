@@ -16,7 +16,6 @@
 
 - 移除 4 个不支持搜索的源：豆瓣资源、猫台资源、豆瓣影视、茅台资源。
 - 移除全库索引（IndexedDB）及其设置项、备份字段与相关代码。
-- 移除 `dist/tvbox-center.js`（整站组件库）与 `dist/tvbox-ui.js`（单界面组件库）两个产物，仓库只保留 `index.html`、`mini.html` 与接口 SDK `dist/tvbox-sdk.js`。
 
 ### 修复
 

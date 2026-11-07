@@ -205,6 +205,75 @@ const DEFAULT_SOURCES = [
 
 ---
 
+## 组件库 tvbox-center.js（含 Pro 全部功能）
+
+`dist/tvbox-center.js` 由 Pro 版重构而来，是**自包含组件库**：包含 Pro 的全部功能——多源搜索、HLS 播放器、一起看、加密备份、投屏（Chromecast / AirPlay）、选集与线路切换、倍速、画质画幅、主题换肤、历史、收藏、设置、键盘快捷键等。样式已作用域限定在容器内，不会污染宿主页面。引入后调用 `TVBox.mount(target, options)` 即可在任意页面挂载完整影视中心。
+
+### 标准 CDN 引入
+
+```html
+<!-- jsDelivr · 锁定版本（生产环境推荐） -->
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.min.js"></script>
+
+<!-- jsDelivr · 跟随 main（始终最新） -->
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js"></script>
+
+<!-- raw 直链（GitHub 直出，无 CDN 缓存） -->
+<script src="https://raw.githubusercontent.com/silverbullet-liang/tvbox-center/main/dist/tvbox-center.min.js"></script>
+```
+
+### 挂载用法
+
+```html
+<div id="tvbox-app" style="height:100vh"></div>
+<script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@main/dist/tvbox-center.min.js"></script>
+<script>
+  const app = TVBox.mount('#tvbox-app', {
+    // 可选：覆盖内置数据源
+    sources: [
+      { key: 'lzi',  name: '量子资源', api: 'https://example.com/api.php/provide/vod/' },
+      { key: 'bfzy', name: '暴风资源', api: 'https://example.com2/api.php/provide/vod/' }
+    ],
+    // 可选：默认主题 purple | yellow | green | blue
+    theme: 'purple'
+  });
+
+  // TVBox.unmount();  // 卸载
+</script>
+```
+
+> - 容器需要有高度（例如 `height:100vh`）；全屏播放器会覆盖整个视口。
+> - 组件库已内置 hls.js 1.7.3 与 mqtt.js 5.15.1；只有 Iconify 图标、MiSans 字体与 Cast SDK 会按需从 CDN 加载。
+> - 同一页面建议只挂载一个实例。
+
+### 内置第三方库（TVBoxCenter 命名空间）
+
+聚合文件已把 mqtt.js 与 hls.js 以 IIFE 合并进同一文件，不产生额外 vendor 文件，并显式暴露到统一命名空间：
+
+```js
+// 主线程 / Worker 均可直接使用（需先加载/importScripts 聚合文件）
+const mqtt = TVBoxCenter.mqtt;   // mqtt.js 5.15.1
+const Hls  = TVBoxCenter.hls;    // hls.js 1.7.3
+```
+
+在 Web Worker 中复用的方式：
+
+```js
+const worker = new Worker(URL.createObjectURL(new Blob([`
+  importScripts('https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.0/dist/tvbox-center.js');
+  const client = TVBoxCenter.mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+`], { type: 'application/javascript' })));
+```
+
+> 聚合文件在 `document` 不存在（Worker）时只装载 `TVBoxCenter.mqtt` / `TVBoxCenter.hls`，不会执行组件库 UI。
+
+### 直接下载
+
+- [tvbox-center.js](dist/tvbox-center.js) — 源码版（约 1.2 MB，含 mqtt / hls）
+- [tvbox-center.min.js](dist/tvbox-center.min.js) — 压缩版（约 1.16 MB，jsDelivr 会再 gzip）
+
+---
+
 ## 接口 SDK tvbox-sdk.js
 
 `dist/tvbox-sdk.js` 是从本项目提取的**纯前端、零依赖**采集接口 SDK，封装苹果 CMS（MacCMS v10）标准 JSON 接口，可在任意网页或 Node 项目中复用。
