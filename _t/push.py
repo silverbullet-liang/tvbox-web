@@ -34,7 +34,7 @@ def req(method, path, body=None, raw=False):
 
 
 def files():
-    out = subprocess.check_output(['git', '-c', 'core.quotepath=false', 'ls-files'], cwd=os.path.dirname(os.path.abspath(__file__)))
+    out = subprocess.check_output(['git', '-c', 'core.quotepath=false', 'ls-files'], cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return [l for l in out.decode().splitlines() if l]
 
 
@@ -45,7 +45,7 @@ def blob(path):
     return path, r['sha']
 
 
-root = os.path.dirname(os.path.abspath(__file__))
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(root)
 paths = files()
 print('文件数', len(paths))
