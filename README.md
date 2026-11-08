@@ -60,7 +60,7 @@ License: `AGPL-3.0-or-later`
 | Home feed (carousel banner + recommendation grid) | — | Yes |
 | Subtitle import (SRT / VTT / ASS / SSA, encoding auto-detect, drag-and-drop) | Yes | Yes |
 | Subtitle styling (font / size / outline / background / position) | — | Yes |
-| Live subtitles (on-device speech recognition, Beta) | — | Yes |
+| Live subtitles (on-device speech recognition) | — | Yes |
 | ASR models (42 / 76 / 240 MB), device-based recommendation, download progress | — | Yes |
 | Home preloading (warms the first seconds of recommended episodes) | — | Yes |
 | Home feed toggle (hide recommendations entirely) | — | Yes |
@@ -147,15 +147,19 @@ The **Share** button builds a `TVC1:` string (JSON → deflate-raw → base64url
 
 **Styling (Pro).** Settings → Subtitle style: font (Song / MiSans / Source Han Sans), size, white-on-black or black-on-white, outline width, background opacity and vertical position — with a live preview.
 
-**Live subtitles (Pro, Beta).** Speech is recognised on-device; the audio track never leaves the browser. Three models are offered, downloaded on first use and then cached for offline playback:
+**Live subtitles (Pro).** Speech is recognised on-device; the audio track never leaves the browser. Seven models are offered (four multilingual, three English-only), downloaded on first use and then cached for offline playback:
 
-| Model | Size | Best for |
-| --- | --- | --- |
-| Lightweight (`whisper-tiny`) | ≈ 42 MB | Phones, older laptops |
-| Balanced (`whisper-base`) | ≈ 76 MB | Most devices |
-| Accurate (`whisper-small`) | ≈ 240 MB | Desktops |
+| Model | Size | Languages | Best for |
+| --- | --- | --- | --- |
+| Whisper Tiny | 41.6 MB | ZH / EN / JA / YUE | Phones, older laptops |
+| Whisper Base | 76.0 MB | ZH / EN / JA / YUE | Most devices |
+| Whisper Small | 240.2 MB | ZH / EN / JA / YUE | Desktops; start here for Cantonese |
+| Whisper Medium | 742.8 MB | ZH / EN / JA / YUE | Desktops with plenty of RAM |
+| Whisper Tiny (English) | 41.0 MB | EN | English-only content |
+| Whisper Base (English) | 75.4 MB | EN | Mostly English |
+| Whisper Small (English) | 239.6 MB | EN | English long-form, accents |
 
-The app scores your device (CPU cores, memory, WebGPU, mobile) and marks the recommended model. Download progress, speed and size are shown; the cache can be deleted at any time. "Look-ahead" (1–10 s) trades latency for fuller sentences.
+The app scores your device (CPU cores, memory, WebGPU, mobile) and marks the recommended model (Medium only on strong desktops). The spoken language can be set to auto / Chinese / English / Japanese / Cantonese for steadier output; English-only models ignore it. Download progress, speed and size are shown; the cache can be deleted at any time. "Look-ahead" (1–10 s) trades latency for fuller sentences.
 
 > The inference library is loaded from jsDelivr and the model weights from ModelScope; HuggingFace is not used. Live subtitles require HTTPS or localhost.
 

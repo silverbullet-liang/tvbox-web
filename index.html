@@ -265,7 +265,10 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .asr-card .asz{font-size:12px;color:var(--on-sf-v);font-variant-numeric:tabular-nums}
 .asr-card.on .asz,.asr-card.on .ads{color:var(--on-p-c);opacity:.92}
 .asr-badge{position:absolute;top:-9px;right:14px;font-size:10px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--t);color:var(--on-s);letter-spacing:.04em}
-.asr-pros{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.asr-langs{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.asr-langs span{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--p-c);color:var(--on-p-c)}
+.asr-card.on .asr-langs span{background:rgba(255,255,255,.72)}
+.asr-pros{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .asr-pros span{font-size:11px;padding:3px 8px;border-radius:999px;background:var(--sf-v);color:var(--on-sf-v)}
 .asr-card.on .asr-pros span{background:rgba(255,255,255,.66);color:var(--on-p-c)}
 .asr-card .ads{font-size:11px;color:var(--on-sf-v);margin-top:8px}
@@ -845,11 +848,15 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         </div>
       </div>
       <div class="st-section" id="asrSection">
-        <div class="st-label">实时字幕 <span class="tag-inline">Beta</span></div>
+        <div class="st-label">实时字幕</div>
         <div class="st-card">
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:12px">
             <div class="left"><iconify-icon icon="lucide:cpu"></iconify-icon><div><div class="t">识别模型</div><div class="s" id="asrDeviceHint">正在检测设备…</div></div></div>
             <div class="asr-list" id="asrList"></div>
+          </div>
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="left"><iconify-icon icon="lucide:languages"></iconify-icon><div><div class="t">识别语言</div><div class="s">自动由模型判断；指定后更稳。英文专用模型忽略此项</div></div></div>
+            <div class="limit-options" id="asrLangOptions"></div>
           </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:4px">
             <div class="slider-row"><div class="slider-head"><div class="t">提前识别秒数</div><div class="v" id="asrLookV">4 秒</div></div>
@@ -923,7 +930,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.1.0 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.2.0 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1041,7 +1048,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         <div class="sub-head"><div class="sub-title">字幕</div><button class="sub-close" id="subCloseBtn"><iconify-icon icon="lucide:x"></iconify-icon></button></div>
         <div class="sub-status" id="subStatus">未加载字幕</div>
         <button class="sub-btn primary" id="subPickBtn"><iconify-icon icon="lucide:upload"></iconify-icon><span>一键导入字幕</span></button>
-        <button class="sub-btn" id="subLiveBtn"><iconify-icon icon="lucide:mic"></iconify-icon><span>实时字幕（Beta）</span></button>
+        <button class="sub-btn" id="subLiveBtn"><iconify-icon icon="lucide:mic"></iconify-icon><span>实时字幕</span></button>
         <button class="sub-btn" id="subClearBtn"><iconify-icon icon="lucide:trash-2"></iconify-icon><span>移除当前字幕</span></button>
         <button class="sub-btn" id="subStyleBtn"><iconify-icon icon="lucide:type"></iconify-icon><span>字幕样式设置</span></button>
         <div class="sub-drop" id="subDrop">把 .srt / .vtt / .ass 字幕文件拖到这里</div>
@@ -1977,7 +1984,7 @@ function subPaintPanel(){
   const cl=document.getElementById("subClearBtn");
   if(cl)cl.style.display=(subCues.length||subLiveCues.length)?"flex":"none";
   const lb=document.getElementById("subLiveBtn");
-  if(lb)lb.innerHTML='<iconify-icon icon="lucide:mic"></iconify-icon><span>'+((typeof asrRunning==="function"&&asrRunning())?"关闭实时字幕":"实时字幕（Beta）")+'</span>';
+  if(lb)lb.innerHTML='<iconify-icon icon="lucide:mic"></iconify-icon><span>'+((typeof asrRunning==="function"&&asrRunning())?"关闭实时字幕":"实时字幕")+'</span>';
 }
 function posKey(it){return it.vod_id+"|"+it._sourceKey;}
 function savePosition(){
@@ -2528,20 +2535,26 @@ const ASR_CFG_KEY="tvbox_asr",ASR_STATE_KEY="tvbox_asr_state";
 const ASR_CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0";
 const ASR_HOST="https://modelscope.cn/";
 const ASR_CATALOG={
-  tiny:{id:"Xenova/whisper-tiny",name:"轻量",mb:42,pros:["延迟最低","内存占用小","下载最快"],desc:"低配手机 / 老电脑",note:"长句偶有漏字"},
-  base:{id:"Xenova/whisper-base",name:"均衡",mb:76,pros:["断句更准","速度与精度平衡","8GB 设备首选"],desc:"主流手机 / 轻薄本",note:"低端机延迟 1–2 秒"},
-  small:{id:"Xenova/whisper-small",name:"高精度",mb:240,pros:["长句与口音最好","标点数字更可靠","桌面端首选"],desc:"高性能电脑",note:"下载与首载较慢"}
+  tiny:{id:"Xenova/whisper-tiny",name:"Whisper Tiny",mb:41.6,langs:["中","英","日","粤"],tags:["轻量","最快"],desc:"低配手机 / 老电脑",note:"长句偶有漏字"},
+  base:{id:"Xenova/whisper-base",name:"Whisper Base",mb:76.0,langs:["中","英","日","粤"],tags:["均衡","推荐"],desc:"主流手机 / 轻薄本",note:"低端机延迟 1–2 秒"},
+  small:{id:"Xenova/whisper-small",name:"Whisper Small",mb:240.2,langs:["中","英","日","粤"],tags:["高质"],desc:"高性能手机 / 桌面端",note:"粤语建议这一档起"},
+  medium:{id:"Xenova/whisper-medium",name:"Whisper Medium",mb:742.8,langs:["中","英","日","粤"],tags:["最高质","桌面"],desc:"桌面 / 大内存设备",note:"下载较久，手机不建议"},
+  tinyen:{id:"Xenova/whisper-tiny.en",name:"Whisper Tiny (English)",mb:41.0,langs:["英"],tags:["英文专用","最快"],desc:"只看英文内容",note:"中文会输出乱码"},
+  baseen:{id:"Xenova/whisper-base.en",name:"Whisper Base (English)",mb:75.4,langs:["英"],tags:["英文专用","均衡"],desc:"英文内容为主",note:"中文会输出乱码"},
+  smallen:{id:"Xenova/whisper-small.en",name:"Whisper Small (English)",mb:239.6,langs:["英"],tags:["英文专用","高质"],desc:"英文长句 / 口音",note:"中文会输出乱码"}
 };
-let asrCfg={model:"tiny",lookahead:4,auto:false};
+const ASR_LANGS=[["auto","自动"],["chinese","中文"],["english","英语"],["japanese","日语"],["cantonese","粤语"]];
+let asrCfg={model:"tiny",lookahead:4,auto:false,lang:"auto"};
 let asrState={};
 let asrDl=null;
 let asrWorker=null,asrLoadedModel="";
 
 function asrLoadCfg(){
-  try{asrCfg=Object.assign({model:"tiny",lookahead:4,auto:false},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:4,auto:false};}
+  try{asrCfg=Object.assign({model:"tiny",lookahead:4,auto:false,lang:"auto"},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:4,auto:false,lang:"auto"};}
   const n=Number(asrCfg.lookahead);
   asrCfg.lookahead=isFinite(n)?Math.max(1,Math.min(10,n)):4;
   if(!ASR_CATALOG[asrCfg.model])asrCfg.model="tiny";
+  if(!ASR_LANGS.some(function(l){return l[0]===asrCfg.lang;}))asrCfg.lang="auto";
   asrCfg.auto=!!asrCfg.auto;
 }
 function asrSaveCfg(){safeSet(ASR_CFG_KEY,JSON.stringify(asrCfg));}
@@ -2559,6 +2572,7 @@ function asrDevice(){
 function asrRecommend(){
   const d=asrDevice();
   if(d.ios||(d.mobile&&d.mem<=4))return "tiny";
+  if(!d.mobile&&d.score>=7&&d.mem>=8)return "medium";
   if(d.score>=5)return "small";
   if(d.score>=2)return "base";
   return "tiny";
@@ -2603,7 +2617,9 @@ function asrWorkerSource(){
     "      self.postMessage({type:'loaded',model:cur});",
     "    } else if(m.type==='run'){",
     "      if(!pipe){self.postMessage({type:'error',msg:'模型未加载'});return;}",
-    "      var out=await pipe(m.audio,{language:'chinese',task:'transcribe'});",
+    "      var opt={task:'transcribe'};",
+"      if(m.lang&&m.lang!=='auto')opt.language=m.lang;",
+"      var out=await pipe(m.audio,opt);",
     "      self.postMessage({type:'text',id:m.id,text:(out&&out.text||'').trim()});",
     "    }",
     "  }catch(err){self.postMessage({type:'error',msg:String((err&&err.message)||err),stack:String((err&&err.stack)||'')});}",
@@ -2700,8 +2716,9 @@ function renderAsr(){
     const pct=dl?Math.min(100,Math.round(asrDl.total?asrDl.loaded/asrDl.total*100:0)):0;
     return '<div class="asr-card'+(on?" on":"")+'" data-model="'+k+'">'
       +(k===rec?'<div class="asr-badge">推荐</div>':"")
-      +'<div class="ah"><div class="an">'+m.name+'</div><div class="asz">约 '+m.mb+' MB</div></div>'
-      +'<div class="asr-pros">'+m.pros.map(function(p){return "<span>"+p+"</span>";}).join("")+'</div>'
+      +'<div class="ah"><div class="an">'+m.name+'</div><div class="asz">'+Number(m.mb).toFixed(1)+' MB</div></div>'
+      +'<div class="asr-langs">'+m.langs.map(function(l){return "<span>"+l+"</span>";}).join("")+'</div>'
+      +'<div class="asr-pros">'+m.tags.map(function(t){return "<span>"+t+"</span>";}).join("")+'</div>'
       +'<div class="ads">'+m.desc+" · "+m.note+'</div>'
       +(dl?'<div class="asr-state"><div class="asr-bar"><i style="width:'+pct+'%"></i></div><div class="asr-pct">'+pct+'%</div></div>'
         :(st?'<div class="asr-state"><div class="asr-bar"><i style="width:100%"></i></div><div class="asr-pct">已就绪</div></div>':""))
@@ -2715,6 +2732,21 @@ function renderAsr(){
   if(lk){lk.value=asrCfg.lookahead;sliderPct(lk);}
   const lv=document.getElementById("asrLookV");
   if(lv)lv.textContent=asrCfg.lookahead+" 秒";
+  const lb=document.getElementById("asrLangOptions");
+  if(lb){
+    lb.innerHTML=ASR_LANGS.map(function(l){
+      return '<button class="limit-btn'+(asrCfg.lang===l[0]?" active":"")+'" data-lang="'+l[0]+'">'+l[1]+'</button>';
+    }).join("");
+    lb.querySelectorAll("[data-lang]").forEach(function(b){
+      b.onclick=function(){
+        asrCfg.lang=b.getAttribute("data-lang");
+        asrSaveCfg();renderAsr();
+        const nm=(ASR_LANGS.filter(function(x){return x[0]===asrCfg.lang;})[0]||["","自动"])[1];
+        toast("识别语言："+nm);
+        if(asrRunning()){asrStop();setTimeout(asrStart,120);}
+      };
+    });
+  }
   setSw(document.getElementById("swAsrAuto"),asrCfg.auto);
 }
 function initAsrUI(){
@@ -2797,7 +2829,7 @@ function asrFlush(){
   const rms=Math.sqrt(sum/Math.max(cnt,1));
   if(rms<0.004)return;
   asrBusy=true;
-  try{asrEnsureWorker().postMessage({type:"run",audio:win});}
+  try{asrEnsureWorker().postMessage({type:"run",audio:win,lang:asrCfg.lang||"auto"});}
   catch(e){asrBusy=false;}
 }
 function asrSame(a,b){
@@ -2829,6 +2861,7 @@ async function asrStart(){
   if(asrRunning())return;
   const cat=ASR_CATALOG[asrCfg.model];
   if(!cat){toast("请先选择识别模型");return;}
+  if(/\.en$/.test(cat.id)&&asrCfg.lang!=="auto"&&asrCfg.lang!=="english")toast("英文专用模型，已忽略语言设置");
   if(!/^https?:$/.test(location.protocol)){toast("实时字幕需要 HTTPS 或 localhost 环境");return;}
   if(!asrLoadedModel||asrLoadedModel!==cat.id){
     if(!asrState[cat.id]&&!asrDl){toast("「"+cat.name+"」模型还没下载，先去设置下载");subClosePanel();switchPage("settings");return;}
