@@ -2025,19 +2025,37 @@ function adFmt(t){
   return (m<10?"0":"")+m+":"+(s<10?"0":"")+s.toFixed(1);
 }
 
+/* ---------- 共用音频通道：同一个 video 只能有一个 MediaElementSource ---------- */
+var _mediaAudio=null,_mediaAudioCtx=null;
+function mediaAudio(){
+  if(_mediaAudio)return _mediaAudio;
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;
+    if(!_mediaAudioCtx)_mediaAudioCtx=new AC();
+    var ctx=_mediaAudioCtx;
+    var src=ctx.createMediaElementSource(videoEl);
+    src.connect(ctx.destination);
+    _mediaAudio={ctx:ctx,src:src};
+    return _mediaAudio;
+  }catch(e){return null;}
+}
+function mediaAudioResume(){
+  if(_mediaAudio&&_mediaAudio.ctx&&_mediaAudio.ctx.state==="suspended")_mediaAudio.ctx.resume().catch(function(){});
+}
+
 /* ---------- 音频指纹 ---------- */
 function adAudioStart(){
   if(adS.actx){if(!adS.audioTimer)adS.audioTimer=setInterval(adAudioTick,100);return;}
   try{
-    var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-    var ac=new AC();
-    var src=ac.createMediaElementSource(videoEl);
-    var an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0;
-    src.connect(an);an.connect(ac.destination);
+    var m=mediaAudio();if(!m){adS.audioOk=false;return;}
+    var ac=m.ctx,src=m.src;
+    var an=adS.analyser;
+    if(!an){an=ac.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0;}
+    src.connect(an);
     adS.actx=ac;adS.analyser=an;adS.srcNode=src;adS.audioOk=true;
     adS.audioTimer=setInterval(adAudioTick,100);
-    if(!adS.resumeBound){adS.resumeBound=true;videoEl.addEventListener("play",function(){if(adS.actx&&adS.actx.state==="suspended")adS.actx.resume().catch(function(){});});}
-    if(ac.state==="suspended")ac.resume().catch(function(){});
+    if(!adS.resumeBound){adS.resumeBound=true;videoEl.addEventListener("play",function(){mediaAudioResume();});}
+    mediaAudioResume();
   }catch(e){adS.audioOk=false;}
 }
 function adAudioTick(){
@@ -2635,13 +2653,18 @@ function initAsrUI(){
 }
 const ASR_WORKLET_SRC=[
 "class AsrCap extends AudioWorkletProcessor{",
-"  constructor(){super();this.b=new Float32Array(4096);this.n=0;}",
+"  constructor(){super();this.b=new Float32Array(2048);this.n=0;this.ratio=(typeof sampleRate==='number'&&sampleRate>0?sampleRate:48000)/16000;this.phase=0;}",
 "  process(inputs){",
 "    const ch=inputs[0]&&inputs[0][0];",
 "    if(ch){",
+"      const r=this.ratio;",
 "      for(let i=0;i<ch.length;i++){",
-"        this.b[this.n++]=ch[i];",
-"        if(this.n>=this.b.length){this.port.postMessage(this.b.slice(0));this.n=0;}",
+"        this.phase+=1;",
+"        if(this.phase>=r){",
+"          this.phase-=r;",
+"          this.b[this.n++]=ch[i];",
+"          if(this.n>=this.b.length){this.port.postMessage(this.b.slice(0));this.n=0;}",
+"        }",
 "      }",
 "    }",
 "    return true;",
@@ -2649,22 +2672,28 @@ const ASR_WORKLET_SRC=[
 "}",
 "registerProcessor('asr-cap',AsrCap);"
 ].join("\n");
-let asrAudio=null,asrRun=null,asrBusy=false,asrSegs=[],pcmBuf=[],pcmLen=0;
+let asrAudio=null,asrRun=null,asrBusy=false,asrSegs=[],pcmBuf=[],pcmLen=0,asrAudioPromise=null,asrWorkletReady=false;
 
 function asrRunning(){return !!(asrRun&&asrRun.active);}
 async function asrEnsureAudio(){
   if(asrAudio)return asrAudio;
-  const Ctor=window.AudioContext||window.webkitAudioContext;
-  if(!Ctor)throw new Error("浏览器不支持音频采集");
-  const ctx=new Ctor({sampleRate:16000});
-  const src=ctx.createMediaElementSource(videoEl);
-  src.connect(ctx.destination);
-  const url=URL.createObjectURL(new Blob([ASR_WORKLET_SRC],{type:"application/javascript"}));
-  await ctx.audioWorklet.addModule(url);
-  const proc=new AudioWorkletNode(ctx,"asr-cap",{numberOfInputs:1,numberOfOutputs:0});
-  proc.port.onmessage=e=>asrOnPcm(e.data);
-  asrAudio={ctx:ctx,src:src,proc:proc};
-  return asrAudio;
+  if(asrAudioPromise)return asrAudioPromise;
+  asrAudioPromise=(async function(){
+    const m=mediaAudio();
+    if(!m)throw new Error("音频通道已被占用，请刷新页面后重试");
+    const ctx=m.ctx,src=m.src;
+    await ctx.resume().catch(function(){});
+    if(!asrWorkletReady){
+      const url=URL.createObjectURL(new Blob([ASR_WORKLET_SRC],{type:"application/javascript"}));
+      await ctx.audioWorklet.addModule(url);
+      asrWorkletReady=true;
+    }
+    const proc=new AudioWorkletNode(ctx,"asr-cap",{numberOfInputs:1,numberOfOutputs:0});
+    proc.port.onmessage=function(e){asrOnPcm(e.data);};
+    asrAudio={ctx:ctx,src:src,proc:proc};
+    return asrAudio;
+  })();
+  try{return await asrAudioPromise;}finally{asrAudioPromise=null;}
 }
 function asrOnPcm(ch){
   if(!asrRunning())return;
