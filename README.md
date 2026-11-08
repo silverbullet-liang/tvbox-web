@@ -63,6 +63,7 @@ License: `AGPL-3.0-or-later`
 | Live subtitles (on-device speech recognition, Beta) | — | Yes |
 | ASR models (42 / 76 / 240 MB), device-based recommendation, download progress | — | Yes |
 | Home preloading (warms the first seconds of recommended episodes) | — | Yes |
+| Home feed toggle (hide recommendations entirely) | — | Yes |
 | Themes (4 colors + dark/light) | Yes | Yes |
 | MiSans font | — | Yes |
 

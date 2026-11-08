@@ -851,8 +851,12 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         </div>
       </div>
       <div class="st-section" id="preloadSection">
-        <div class="st-label">首页预加载</div>
+        <div class="st-label">首页</div>
         <div class="st-card">
+          <div class="st-item">
+            <div class="left"><iconify-icon icon="lucide:layout-grid"></iconify-icon><div><div class="t">首页推荐</div><div class="s">关闭后首页只保留历史记录与收藏，也不请求推荐数据</div></div></div>
+            <div class="sw" id="swHomeRec"><div class="sw-track"></div><div class="sw-thumb"></div></div>
+          </div>
           <div class="st-item">
             <div class="left"><iconify-icon icon="lucide:download-cloud"></iconify-icon><div><div class="t">后台预加载</div><div class="s">空闲时预取首页推荐每部第一集的前几秒</div></div></div>
             <div class="sw" id="swPreload"><div class="sw-track"></div><div class="sw-thumb"></div></div>
@@ -1215,7 +1219,7 @@ const THEMES={
 };
 const HIST_LIMIT_DEFAULT=50;
 const HOME_PREVIEW_COUNT=10;
-const DEFAULT_PLAYER_SETTINGS={playMode:"loop",rememberPos:true,longPressSpeed:true,autoFs:false,gesture:true,skipStart:0,skipEnd:0,defSpeed:1,defRatio:"auto",adSkip:true,corsMode:"auto",corsProxy:""};
+const DEFAULT_PLAYER_SETTINGS={playMode:"loop",rememberPos:true,longPressSpeed:true,autoFs:false,gesture:true,skipStart:0,skipEnd:0,defSpeed:1,defRatio:"auto",adSkip:true,homeRec:true,corsMode:"auto",corsProxy:""};
 let sources=[],favorites=[],history=[],currentPage="home",currentTheme="purple";
 let histLimit=HIST_LIMIT_DEFAULT;
 let playerSettings={...DEFAULT_PLAYER_SETTINGS};
@@ -1412,6 +1416,7 @@ function homeFeedCache(){
 }
 function homeFeedSave(list){try{sessionStorage.setItem(HOME_FEED_KEY,JSON.stringify({t:Date.now(),list}))}catch(e){}}
 async function loadHomeFeed(force){
+  if(!playerSettings.homeRec)return;
   if(homeFeed&&!force){renderHomeFeed(homeFeed);return}
   if(!force){const c=homeFeedCache();if(c&&c.length){homeFeed=c;renderHomeFeed(c);return}}
   const srcs=enabledSrc();if(!srcs.length)return;
@@ -1429,6 +1434,7 @@ function renderHomeFeed(list){
   const sec=document.getElementById("homeBannerSection"),rec=document.getElementById("homeRecSection");
   const banner=document.getElementById("homeBanner"),dots=document.getElementById("homeBannerDots"),grid=document.getElementById("homeRecGrid");
   if(!banner||!grid)return;
+  if(!playerSettings.homeRec){if(sec)sec.style.display="none";if(rec)rec.style.display="none";return;}
   const withPic=list.filter(it=>it.vod_pic&&it.vod_pic.length>10&&!it.vod_pic.includes("noimg"));
   const picks=(withPic.length?withPic:list).slice(0,5);
   banner.innerHTML="";dots.innerHTML="";
@@ -1619,6 +1625,8 @@ function renderSettings(){
   setSw(document.getElementById("swAutoFs"),playerSettings.autoFs);
   setSw(document.getElementById("swGesture"),playerSettings.gesture);
   setSw(document.getElementById("swAdSkip"),playerSettings.adSkip);
+  setSw(document.getElementById("swHomeRec"),playerSettings.homeRec!==false);
+  setSw(document.getElementById("swPreload"),typeof preCfg!=="undefined"?preCfg.on:true);
   document.querySelectorAll(".theme-option").forEach(el=>{el.classList.toggle("active",el.dataset.theme===currentTheme);el.onclick=()=>{applyTheme(el.dataset.theme);saveTheme();toast("主题已切换");renderSettings();};});
   const list=document.getElementById("sourceList");list.innerHTML="";
   sources.forEach((src,idx)=>{const item=document.createElement("div");item.className="st-item";const noProxyTag=src.noProxy?`<span class="tag-inline">免代理</span>`:"";item.innerHTML=`<div class="left" style="flex:1;min-width:0">${iconTag('rss',22)}<div style="flex:1;min-width:0;overflow:hidden"><div class="t" style="display:flex;align-items:center;flex-wrap:wrap">${esc(src.name)}${noProxyTag}</div><div class="s" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(src.api)}</div></div></div><div class="sw ${src.enabled?'on':''}" data-idx="${idx}"><div class="sw-track"></div><div class="sw-thumb"></div></div>`;list.appendChild(item);});
@@ -1719,6 +1727,24 @@ function sliderPct(el){
   const p=Math.max(0,Math.min(100,((v-min)/(max-min))*100));
   el.style.setProperty("--pct",p.toFixed(2)+"%");
 }
+function rangeSync(el,unit){
+  if(!el)return 0;
+  const lo=isFinite(Number(el.min))?Number(el.min):0;
+  const hi=isFinite(Number(el.max))?Number(el.max):100;
+  let v=Number(el.value);
+  if(!isFinite(v))v=lo;
+  v=Math.max(lo,Math.min(hi,v));
+  el.value=v;
+  sliderPct(el);
+  const lb=document.getElementById(el.id+"V");
+  if(lb)lb.textContent=v+(unit||"");
+  return v;
+}
+function bindRange(el,unit,onVal){
+  if(!el)return;
+  el.oninput=function(){const v=rangeSync(el,unit);if(typeof onVal==="function")onVal(v);};
+  rangeSync(el,unit);
+}
 function renderSubSettings(){
   const ff=document.getElementById("subFontOptions");
   if(ff)ff.querySelectorAll(".limit-btn").forEach(b=>b.classList.toggle("active",b.dataset.font===subStyle.font));
@@ -1735,14 +1761,10 @@ function bindSubSettings(){
   if(ff)ff.querySelectorAll(".limit-btn").forEach(b=>{b.onclick=()=>{subStyle.font=b.dataset.font;subSaveStyle();renderSubSettings();toast("字幕字体："+(SUB_FONTS[subStyle.font]||SUB_FONTS.song).label);};});
   const mf=document.getElementById("subModeOptions");
   if(mf)mf.querySelectorAll(".limit-btn").forEach(b=>{b.onclick=()=>{subStyle.mode=b.dataset.mode;subSaveStyle();renderSubSettings();toast(b.textContent);};});
-  const rows=[["subSize","size"],["subEdge","edge"],["subBg","bg"],["subBottom","bottom"]];
-  rows.forEach(r=>{const el=document.getElementById(r[0]);
-    if(el)el.oninput=function(){
-      const v=Number(el.value);
-      if(!isFinite(v))return;
-      subStyle[r[1]]=v;subSaveStyle();sliderPct(el);
-      const lb=document.getElementById(r[0]+"V");if(lb)lb.textContent=v+r[2];
-      subApplyStyle();};});
+  bindRange(document.getElementById("subSize")," px",function(v){subStyle.size=v;subSaveStyle();subApplyStyle();});
+  bindRange(document.getElementById("subEdge")," px",function(v){subStyle.edge=v;subSaveStyle();subApplyStyle();});
+  bindRange(document.getElementById("subBg")," %",function(v){subStyle.bg=v;subSaveStyle();subApplyStyle();});
+  bindRange(document.getElementById("subBottom")," %",function(v){subStyle.bottom=v;subSaveStyle();subApplyStyle();});
 }
 function subScale(){
   const wrap=document.getElementById("videoWrap");if(!wrap)return;
@@ -2606,7 +2628,7 @@ function initAsrUI(){
     else if(act==="asr-del"){asrDelete(key);}
   });
   const lk=document.getElementById("asrLook");
-  if(lk)lk.oninput=function(){asrCfg.lookahead=parseInt(lk.value,10)||4;asrSaveCfg();sliderPct(lk);const v=document.getElementById("asrLookV");if(v)v.textContent=asrCfg.lookahead+" 秒";};
+  bindRange(lk," 秒",function(v){asrCfg.lookahead=v;asrSaveCfg();});
   const sw=document.getElementById("swAsrAuto");
   if(sw)sw.addEventListener("click",function(){asrCfg.auto=!asrCfg.auto;asrSaveCfg();setSw(sw,asrCfg.auto);toast(asrCfg.auto?"打开影片自动开启实时字幕":"已关闭自动开启");});
   asrLoadCfg();asrLoadState();renderAsr();
@@ -2798,6 +2820,24 @@ function scheduleHomePreload(list){
 }
 function initPreloadUI(){
   preLoadCfg();
+  const hr=document.getElementById("swHomeRec");
+  if(hr){
+    setSw(hr,playerSettings.homeRec!==false);
+    hr.addEventListener("click",function(){
+      playerSettings.homeRec=!playerSettings.homeRec;
+      savePlayerSettings();
+      setSw(hr,playerSettings.homeRec);
+      const b=document.getElementById("homeBannerSection"),r=document.getElementById("homeRecSection");
+      if(playerSettings.homeRec){
+        toast("已开启首页推荐");
+        if(homeFeed)renderHomeFeed(homeFeed);else loadHomeFeed();
+      }else{
+        if(b)b.style.display="none";
+        if(r)r.style.display="none";
+        toast("已关闭首页推荐");
+      }
+    });
+  }
   const sw=document.getElementById("swPreload");
   if(sw){
     setSw(sw,preCfg.on);
@@ -2809,8 +2849,8 @@ function initPreloadUI(){
   }
   const sc=document.getElementById("preCount");
   if(sc){
-    sc.value=preCfg.count;sliderPct(sc);
-    sc.oninput=function(){preCfg.count=parseInt(sc.value,10)||4;preSaveCfg();sliderPct(sc);const v=document.getElementById("preCountV");if(v)v.textContent=preCfg.count+" 部";};
+    sc.value=preCfg.count;
+    bindRange(sc," 部",function(v){preCfg.count=v;preSaveCfg();});
     const v=document.getElementById("preCountV");
     if(v)v.textContent=preCfg.count+" 部";
   }
