@@ -28,16 +28,20 @@ def cmd(method,params=None):
         m=json.loads(ws.recv())
         if m.get('id')==mid: return m
 
-cmd('Page.enable'); cmd('Runtime.enable')
+cmd('Page.enable'); cmd('Runtime.enable'); cmd('Network.enable')
+cmd('Network.setBlockedURLs',{'urls':['*cdn.jsdelivr.net*','*code.iconify.design*','*gstatic.com*','*misans*']})
 cmd('Page.addScriptToEvaluateOnNewDocument',{'source':"window.__errs=[];addEventListener('error',e=>__errs.push(String(e.message)));addEventListener('unhandledrejection',e=>__errs.push('REJ '+String(e.reason&&e.reason.message||e.reason)));"})
 cmd('Page.navigate',{'url':'http://127.0.0.1:8899/index.html'})
-time.sleep(3.5)
+for _ in range(40):
+    time.sleep(0.5)
+    r0=cmd('Runtime.evaluate',{'expression':"(document.readyState==='complete')&&(typeof switchPage==='function')",'returnByValue':True})
+    if (r0.get('result',{}).get('result') or {}).get('value') is True: break
 
 TEST=r"""(async()=>{
   try{
     if(typeof switchPage==='function') switchPage('settings');
     else document.querySelector('[data-page="settings"]').click();
-  }catch(e){ return JSON.stringify({fatal:String(e)}); }
+  }catch(e){ return JSON.stringify({fatal:String(e),hasSwitch:typeof switchPage,errs:window.__errs||[],nav:[...document.querySelectorAll('[data-page]')].map(x=>x.getAttribute('data-page')).slice(0,8)}); }
   await new Promise(r=>setTimeout(r,500));
   const cards=[...document.querySelectorAll('#asrList .asr-card')];
   const langBtns=[...document.querySelectorAll('#asrLangOptions .limit-btn')];
@@ -57,6 +61,8 @@ TEST=r"""(async()=>{
     active:[...document.querySelectorAll('#asrLangOptions .limit-btn.active')].map(b=>b.textContent),
     hint:(document.getElementById('asrDeviceHint')||{}).textContent||'',
     beta:document.body.innerHTML.includes('Beta'),
+    look:(()=>{const el=document.getElementById('asrLook');return el?{min:el.min,max:el.max,value:el.value,label:el.parentElement.parentElement.querySelector('.t').textContent}:null;})(),
+    lookV:(document.getElementById('asrLookV')||{}).textContent||'',
     errs:window.__errs||[]
   });
 })()"""
