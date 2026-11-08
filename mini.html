@@ -218,6 +218,9 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 
 .video-wrap{position:relative;width:100%;background:#000;flex-shrink:0;z-index:1;overflow:hidden}
 .video-wrap video{width:100%;height:100%;display:block;object-fit:contain}
+.sub-layer{position:absolute;left:0;right:0;bottom:8%;display:flex;justify-content:center;padding:0 5%;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s}
+.sub-layer.on{opacity:1}
+.sub-layer .sub-line{max-width:96%;text-align:center;font-size:clamp(15px,3.6vw,28px);line-height:1.42;color:#fff;background:rgba(0,0,0,.32);border-radius:8px;padding:2px 10px;white-space:pre-wrap;word-break:break-word;text-shadow:-1px -1px 0 #000,0 -1px 0 #000,1px -1px 0 #000,-1px 0 0 #000,1px 0 0 #000,-1px 1px 0 #000,0 1px 0 #000,1px 1px 0 #000}
 
 .video-wrap.ratio-auto{aspect-ratio:16/9}
 .video-wrap.ratio-auto video{object-fit:contain}
@@ -535,6 +538,8 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
     </div>
     <div class="video-wrap ratio-auto" id="videoWrap">
       <video id="videoEl" playsinline webkit-playsinline preload="auto" x5-playsinline="true" x-webkit-airplay="true"></video>
+      <div class="sub-layer" id="subLayer"><div class="sub-line" id="subLine"></div></div>
+      <input type="file" id="subFile" accept=".srt,.vtt,.ass,.ssa,.txt" style="display:none">
       <div class="player-loading" id="playerLoading">
         <div class="load-box">
           <div class="spinner-wrap"><div class="spinner"></div><div class="spinner-inner"></div></div>
@@ -556,6 +561,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           </button>
           <div class="time-display" id="timeDisplay">00:00 / 00:00</div>
           <div style="flex:1"></div>
+          <button class="ctrl-btn" id="btnSubtitle" title="导入字幕"><iconify-icon icon="lucide:captions"></iconify-icon></button>
           <button class="ctrl-btn" id="btnQuality" style="position:relative;display:none"><span style="font-size:11px;font-weight:600">自动</span>
             <div class="quality-menu" id="qualityMenu"></div>
           </button>
@@ -986,7 +992,7 @@ const progressFill=document.getElementById("progressFill");
 const timeDisplay=document.getElementById("timeDisplay");
 
 async function openPlayer(it){
-  addHist(it);playerItem=it;
+  addHist(it);playerItem=it;miniRestore(it);
   playerOverlay.classList.add("active");
   document.getElementById("playerTitle").textContent=it.vod_name||"播放中";
   document.getElementById("playerFav").classList.toggle("active",isFav(it));
@@ -1233,6 +1239,101 @@ videoEl.addEventListener("ended",()=>{isPlaying=false;updPlayBtn()});
 videoEl.addEventListener("waiting",()=>{startLoading()});
 videoEl.addEventListener("playing",()=>{stopLoading()});
 videoEl.addEventListener("canplay",()=>{stopLoading()});
+/* ---------- 字幕导入（Mini） ---------- */
+const MINI_SUB_KEY="tvbox_mini_sub";
+let miniCues=[],miniSubName="";
+function miniDecode(buf){
+  const u8=new Uint8Array(buf);
+  if(u8[0]===239&&u8[1]===187&&u8[2]===191)return new TextDecoder("utf-8").decode(u8.subarray(3));
+  if(u8[0]===255&&u8[1]===254)return new TextDecoder("utf-16le").decode(u8);
+  const t=new TextDecoder("utf-8",{fatal:false}).decode(u8);
+  if(t.indexOf("\uFFFD")>=0){try{const g=new TextDecoder("gbk",{fatal:false}).decode(u8);if(g.indexOf("\uFFFD")<0)return g;}catch(e){}}
+  return t;
+}
+function miniT(s){
+  const m=String(s||"").match(/(\d+):(\d{1,2}):(\d{1,2})[.,:](\d{1,3})/);
+  if(!m)return -1;
+  return (+m[1])*3600+(+m[2])*60+(+m[3])+(+(m[4]+"00").slice(0,2))/100;
+}
+function miniParse(text){
+  const out=[];
+  for(const b of String(text).replace(/\r/g,"").split(/\n{2,}/)){
+    const lines=b.split("\n"),ti=lines.findIndex(l=>l.indexOf("-->")>=0);
+    if(ti<0)continue;
+    const tm=lines[ti].match(/([\d:.,]+)\s*-->\s*([\d:.,]+)/);
+    if(!tm)continue;
+    const s=miniT(tm[1]),e=miniT(tm[2]);
+    const t=lines.slice(ti+1).join("\n").replace(/<[^>]+>/g,"").replace(/\{[^}]*\}/g,"").trim();
+    if(s>=0&&e>s&&t)out.push({s:s,e:e,t:t});
+  }
+  if(!out.length&&/\[events\]/i.test(text)){
+    let fmt=null,inEv=false;
+    for(const raw of String(text).replace(/\r/g,"").split("\n")){
+      const l=raw.trim();
+      if(/^\[events\]/i.test(l)){inEv=true;continue}
+      if(/^\[[^\]]+\]/.test(l)){inEv=false;continue}
+      if(!inEv)continue;
+      if(/^format\s*:/i.test(l)){fmt=l.replace(/^format\s*:/i,"").split(",").map(x=>x.trim().toLowerCase());continue}
+      if(!/^dialogue\s*:/i.test(l))continue;
+      const parts=l.replace(/^dialogue\s*:/i,"").split(","),n=fmt?fmt.length:10;
+      if(parts.length<n)continue;
+      const head=parts.slice(0,n-1),txt=parts.slice(n-1).join(",");
+      const pick=k=>{const i=fmt?fmt.indexOf(k):-1;return i>=0?(head[i]||""):""};
+      const s=miniT(pick("start")),e=miniT(pick("end"));
+      const t=txt.replace(/\{[^}]*\}/g,"").replace(/\\[Nn]/g,"\n").replace(/\\h/g," ").trim();
+      if(s>=0&&e>s&&t)out.push({s:s,e:e,t:t});
+    }
+  }
+  return out.sort((a,b)=>a.s-b.s);
+}
+function miniRender(){
+  const layer=document.getElementById("subLayer"),line=document.getElementById("subLine");
+  if(!layer||!line)return;
+  const t=videoEl.currentTime||0;
+  let txt="";
+  for(const c of miniCues){
+    if(c.s>t)break;
+    if(c.e>t){txt=c.t;break}
+  }
+  if(txt){if(line.textContent!==txt)line.textContent=txt;layer.classList.add("on")}
+  else if(line.textContent){line.textContent="";layer.classList.remove("on")}
+}
+function miniStore(){
+  if(!playerItem)return;
+  try{localStorage.setItem(MINI_SUB_KEY,JSON.stringify({id:playerItem.vod_id,n:miniSubName,c:miniCues.map(x=>[Math.round(x.s*100)/100,Math.round(x.e*100)/100,x.t])}))}catch(e){}
+}
+function miniRestore(it){
+  miniCues=[];miniSubName="";
+  if(it){
+    try{
+      const d=JSON.parse(localStorage.getItem(MINI_SUB_KEY)||"null");
+      if(d&&String(d.id)===String(it.vod_id)&&Array.isArray(d.c)){miniCues=d.c.map(a=>({s:a[0],e:a[1],t:a[2]}));miniSubName=d.n||"字幕";}
+    }catch(e){}
+  }
+  miniRender();
+}
+async function miniImport(file){
+  if(!file)return;
+  const ext=(String(file.name).split(".").pop()||"").toLowerCase();
+  if(["srt","vtt","ass","ssa","txt"].indexOf(ext)<0){toast("请选择 .srt / .vtt / .ass 字幕");return}
+  try{
+    const cues=miniParse(miniDecode(await file.arrayBuffer()));
+    if(!cues.length){toast("没能解析出字幕");return}
+    miniCues=cues;miniSubName=file.name;
+    miniStore();miniRender();
+    toast("已导入字幕 "+cues.length+" 条");
+  }catch(e){toast("字幕读取失败")}
+}
+document.getElementById("btnSubtitle").addEventListener("click",function(e){e.stopPropagation();document.getElementById("subFile").click()});
+document.getElementById("subFile").addEventListener("change",function(){const f=this.files&&this.files[0];this.value="";if(f)miniImport(f)});
+videoEl.addEventListener("timeupdate",miniRender);
+videoEl.addEventListener("seeked",miniRender);
+(function(){
+  const w=document.getElementById("videoWrap");
+  if(!w)return;
+  ["dragover","dragenter"].forEach(ev=>w.addEventListener(ev,e=>e.preventDefault()));
+  w.addEventListener("drop",function(e){e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)miniImport(f)});
+})();
 function updPlayBtn(){
   document.getElementById("iconPlay").style.display=isPlaying?"none":"block";
   document.getElementById("iconPause").style.display=isPlaying?"block":"none";

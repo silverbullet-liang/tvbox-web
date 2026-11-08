@@ -8,7 +8,7 @@ Open one HTML file in a browser to search, play and cast — no backend, no inst
 
 Two editions are provided:
 
-- **Pro (`index.html`)** — full-featured. Ships seven sources, all server-searchable, plus casting, long-press speed, intro/outro skip, resume position and more.
+- **Pro (`index.html`)** — full-featured. Ships thirteen sources, all server-searchable, plus subtitles (import, styling, on-device live captions), home preloading, casting, long-press speed, intro/outro skip, resume position and more.
 - **Mini (`mini.html`)** — lightweight. A single data source, a leaner UI, suitable for low-end devices and quick deploys.
 
 License: `AGPL-3.0-or-later`
@@ -35,7 +35,7 @@ License: `AGPL-3.0-or-later`
 
 | Capability | Mini | Pro |
 | --- | :--: | :--: |
-| Bundled sources | 1 | 7 (all server-searchable) |
+| Bundled sources | 1 | 13 (all server-searchable) |
 | Parallel multi-source search | Yes | Yes |
 | Search suggestions | — | Yes |
 | HLS playback (hls.js) | Yes | Yes |
@@ -58,6 +58,11 @@ License: `AGPL-3.0-or-later`
 | Auto-skip ads (Worker pre-check / range hint / cancel) | — | Yes |
 | CORS proxy (auto / off / custom) | Yes | Yes |
 | Home feed (carousel banner + recommendation grid) | — | Yes |
+| Subtitle import (SRT / VTT / ASS / SSA, encoding auto-detect, drag-and-drop) | Yes | Yes |
+| Subtitle styling (font / size / outline / background / position) | — | Yes |
+| Live subtitles (on-device speech recognition, Beta) | — | Yes |
+| ASR models (42 / 76 / 240 MB), device-based recommendation, download progress | — | Yes |
+| Home preloading (warms the first seconds of recommended episodes) | — | Yes |
 | Themes (4 colors + dark/light) | Yes | Yes |
 | MiSans font | — | Yes |
 
@@ -135,6 +140,26 @@ Rooms are isolated per title using `sourceKey::vodId` — different sources for 
 
 The **Share** button builds a `TVC1:` string (JSON → deflate-raw → base64url) and copies it to the clipboard. The app recognizes it from the clipboard on load/focus, when pasted into the search box (press Enter), from a global paste, or via Settings → "Open from clipboard". Joining switches to the matching source, loads the title, selects the line/episode, seeks to the shared position, enters fullscreen and opens the sidebar.
 
+## Subtitles
+
+**Import.** In the player, tap the subtitle (CC) button and pick a `.srt`, `.vtt`, `.ass` or `.ssa` file — or drop it straight onto the player. Encoding is detected automatically (UTF-8 / UTF-16 / GBK). The subtitle is remembered per title and re-attached the next time you open it.
+
+**Styling (Pro).** Settings → Subtitle style: font (Song / MiSans / Source Han Sans), size, white-on-black or black-on-white, outline width, background opacity and vertical position — with a live preview.
+
+**Live subtitles (Pro, Beta).** Speech is recognised on-device; the audio track never leaves the browser. Three models are offered, downloaded on first use and then cached for offline playback:
+
+| Model | Size | Best for |
+| --- | --- | --- |
+| Lightweight (`whisper-tiny`) | ≈ 42 MB | Phones, older laptops |
+| Balanced (`whisper-base`) | ≈ 76 MB | Most devices |
+| Accurate (`whisper-small`) | ≈ 240 MB | Desktops |
+
+The app scores your device (CPU cores, memory, WebGPU, mobile) and marks the recommended model. Download progress, speed and size are shown; the cache can be deleted at any time. "Look-ahead" (1–10 s) trades latency for fuller sentences.
+
+> The inference library is loaded from jsDelivr and the model weights from ModelScope; HuggingFace is not used. Live subtitles require HTTPS or localhost.
+
+---
+
 ## Auto-skip ads
 
 For fixed-template ads inserted into the video stream, three local signals are combined:
@@ -168,7 +193,9 @@ Pipeline: JSON → UTF-8 → **GZIP** → XOR → RC4 → **AES-GCM-256**. PBKDF
 
 ## Component library
 
-`dist/tvbox-center.js` is a self-contained component library with all Pro features. It bundles **hls.js 1.7.3** and **mqtt.js 5.15.1** into the same file and exposes them as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`.
+`dist/tvbox-center.js` is a self-contained component library covering the Pro playback stack (search, HLS player, Watch Together, encrypted backup, casting, episode/line switch, speed, ratio, themes, history, favourites, settings, keyboard shortcuts). It bundles **hls.js 1.7.3** and **mqtt.js 5.15.1** into the same file and exposes them as `TVBoxCenter.hls` / `TVBoxCenter.mqtt`.
+
+> The subtitle import / styling, live captions and home preloading added in v2.1.0 currently ship only in the Pro build (`index.html`). The component library and SDK are unchanged and stay at `@v2.0.1`.
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-center@v2.0.1/dist/tvbox-center.min.js"></script>
