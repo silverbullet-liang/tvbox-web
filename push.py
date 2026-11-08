@@ -3,7 +3,7 @@
 import base64, json, os, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-REPO = 'silverbullet-liang/tvbox-center'
+REPO = 'silverbullet-liang/tvbox-web'
 API = 'https://api.github.com'
 TOK = os.environ['GITHUB_TOKEN']
 BR = 'main'
