@@ -618,6 +618,18 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
     </div>
     <div class="page" id="pageSettings">
+      <div class="search-bar" style="padding-top:0">
+        <div class="search-field">
+          <iconify-icon icon="lucide:search"></iconify-icon>
+          <input type="text" id="setSearch" placeholder="搜索设置项，如 字幕 / 代理 / 预加载" autocomplete="off" spellcheck="false">
+          <div class="clear-btn" id="setSearchClear"><iconify-icon icon="lucide:x"></iconify-icon></div>
+        </div>
+      </div>
+      <div class="empty" id="setSearchEmpty" style="display:none">
+        <iconify-icon icon="lucide:search"></iconify-icon>
+        <div class="t1">没有匹配的设置项</div>
+        <div class="t2">换个关键词试试</div>
+      </div>
       <div class="st-section">
         <div class="st-label">个人资料</div>
         <div class="st-card">
@@ -856,6 +868,10 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           <div class="st-item">
             <div class="left"><iconify-icon icon="lucide:layout-grid"></iconify-icon><div><div class="t">首页推荐</div><div class="s">关闭后首页只保留历史记录与收藏，也不请求推荐数据</div></div></div>
             <div class="sw" id="swHomeRec"><div class="sw-track"></div><div class="sw-thumb"></div></div>
+          </div>
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="left"><iconify-icon icon="lucide:inbox"></iconify-icon><div><div class="t">首页推荐源</div><div class="s">只影响首页取数，搜索仍然走全部已启用源</div></div></div>
+            <div class="limit-options" id="homeSrcOptions"></div>
           </div>
           <div class="st-item">
             <div class="left"><iconify-icon icon="lucide:download-cloud"></iconify-icon><div><div class="t">后台预加载</div><div class="s">空闲时预取首页推荐每部第一集的前几秒</div></div></div>
@@ -1219,7 +1235,7 @@ const THEMES={
 };
 const HIST_LIMIT_DEFAULT=50;
 const HOME_PREVIEW_COUNT=10;
-const DEFAULT_PLAYER_SETTINGS={playMode:"loop",rememberPos:true,longPressSpeed:true,autoFs:false,gesture:true,skipStart:0,skipEnd:0,defSpeed:1,defRatio:"auto",adSkip:true,homeRec:true,corsMode:"auto",corsProxy:""};
+const DEFAULT_PLAYER_SETTINGS={playMode:"loop",rememberPos:true,longPressSpeed:true,autoFs:false,gesture:true,skipStart:0,skipEnd:0,defSpeed:1,defRatio:"auto",adSkip:true,homeRec:true,homeSrc:"all",corsMode:"auto",corsProxy:""};
 let sources=[],favorites=[],history=[],currentPage="home",currentTheme="purple";
 let histLimit=HIST_LIMIT_DEFAULT;
 let playerSettings={...DEFAULT_PLAYER_SETTINGS};
@@ -1419,7 +1435,13 @@ async function loadHomeFeed(force){
   if(!playerSettings.homeRec)return;
   if(homeFeed&&!force){renderHomeFeed(homeFeed);return}
   if(!force){const c=homeFeedCache();if(c&&c.length){homeFeed=c;renderHomeFeed(c);return}}
-  const srcs=enabledSrc();if(!srcs.length)return;
+  const allSrc=enabledSrc();
+  let srcs=allSrc;
+  if(playerSettings.homeSrc&&playerSettings.homeSrc!=="all"){
+    const pick=allSrc.filter(s=>s.key===playerSettings.homeSrc);
+    if(pick.length)srcs=pick;
+  }
+  if(!srcs.length)return;
   const grid=document.getElementById("homeRecGrid");
   if(grid&&!homeFeed){grid.innerHTML="";grid.appendChild(skel(6,"lg"));}
   const results=await Promise.all(srcs.map(s=>apiList(s,1,"","")));
@@ -1605,8 +1627,67 @@ async function doSearch(reset){
   searchLoading=false;refreshEmpty();
 }
 function setSw(el,on){if(!el)return;el.classList.toggle("on",!!on);}
+/* ---------- 设置页搜索 ---------- */
+var setSearchTimer=0;
+function filterSettings(q){
+  const page=document.getElementById("pageSettings");
+  if(!page)return;
+  q=(q||"").trim().toLowerCase();
+  let first=null,count=0;
+  page.querySelectorAll(".st-section").forEach(function(sec){
+    let vis=0;
+    sec.querySelectorAll(".st-item").forEach(function(it){
+      const hit=!q||it.textContent.toLowerCase().indexOf(q)>=0;
+      it.style.display=hit?"":"none";
+      if(hit){vis++;count++;if(q&&!first)first=it;}
+    });
+    sec.style.display=(!q||vis>0)?"":"none";
+  });
+  const empty=document.getElementById("setSearchEmpty");
+  if(empty)empty.style.display=(q&&!count)?"flex":"none";
+  if(first)first.scrollIntoView({block:"center",behavior:"smooth"});
+}
+function initSettingsSearch(){
+  const inp=document.getElementById("setSearch");
+  const clr=document.getElementById("setSearchClear");
+  if(!inp)return;
+  inp.addEventListener("input",function(){
+    if(clr)clr.classList.toggle("show",!!inp.value);
+    clearTimeout(setSearchTimer);
+    setSearchTimer=setTimeout(function(){filterSettings(inp.value);},150);
+  });
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){inp.value="";if(clr)clr.classList.remove("show");filterSettings("");inp.blur();}
+  });
+  if(clr)clr.addEventListener("click",function(){
+    inp.value="";clr.classList.remove("show");filterSettings("");inp.focus();
+  });
+}
+function renderHomeSrcOptions(){
+  const box=document.getElementById("homeSrcOptions");
+  if(!box)return;
+  let cur=playerSettings.homeSrc||"all";
+  if(cur!=="all"&&!sources.some(s=>s.key===cur&&s.enabled!==false))cur="all";
+  const list=[{key:"all",name:"全部合并"}].concat(sources.filter(s=>s.enabled!==false).map(s=>({key:s.key,name:s.name})));
+  box.innerHTML=list.map(function(s){
+    return '<button class="limit-btn'+(s.key===cur?" active":"")+'" data-hsrc="'+esc(s.key)+'">'+esc(s.name)+'</button>';
+  }).join("");
+  box.querySelectorAll("[data-hsrc]").forEach(function(b){
+    b.onclick=function(){
+      const k=b.getAttribute("data-hsrc");
+      playerSettings.homeSrc=k;
+      savePlayerSettings();
+      renderHomeSrcOptions();
+      const nm=k==="all"?"全部合并":((sources.find(x=>x.key===k)||{}).name||k);
+      toast("首页推荐源："+nm);
+      homeFeed=null;
+      try{sessionStorage.removeItem(HOME_FEED_KEY);}catch(e){}
+      if(playerSettings.homeRec)loadHomeFeed();
+    };
+  });
+}
 function renderSettings(){
-  bindSubSettings();renderSubSettings();renderAsr();
+  bindSubSettings();renderSubSettings();renderAsr();renderHomeSrcOptions();
   const hint=document.getElementById("histLimitHint");if(hint)hint.textContent=histLimit>0?`当前保留 ${histLimit} 条`:`当前不限条数`;
   const limitBox=document.getElementById("histLimitOptions");
   if(limitBox){limitBox.querySelectorAll(".limit-btn").forEach(btn=>{const val=parseInt(btn.dataset.limit,10);btn.classList.toggle("active",val===histLimit);btn.onclick=()=>{histLimit=val;saveHistLimit();if(histLimit>0&&history.length>histLimit){history.length=histLimit;saveHist();}renderSettings();renderHome();if(isAllHistoryOpen())renderAllHistory();toast(histLimit>0?`历史保留 ${histLimit} 条`:"历史条数不限");};});}
@@ -2919,6 +3000,7 @@ function initSubtitleUI(){
 initSubtitleUI();
 initAsrUI();
 initPreloadUI();
+initSettingsSearch();
 document.getElementById("playerFav").addEventListener("click",()=>{if(!playerItem)return;toggleFav(playerItem);document.getElementById("playerFav").classList.toggle("active",isFav(playerItem));});
 let miniDragState={active:false,moved:false,x:0,y:0,startX:0,startY:0};
 function initMiniDrag(){miniPlayer.addEventListener("mousedown",startMiniDrag);miniPlayer.addEventListener("touchstart",startMiniDrag,{passive:false});}
