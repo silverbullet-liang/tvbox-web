@@ -863,9 +863,9 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
             <div class="sw" id="swAsrPre"><div class="sw-track"></div><div class="sw-thumb"></div></div>
           </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:4px">
-            <div class="slider-row"><div class="slider-head"><div class="t">提前识别（窗口秒数）</div><div class="v" id="asrLookV">2 秒</div></div>
-              <input class="md-slider" type="range" id="asrLook" min="1" max="6" step="1" value="2"></div>
-            <div class="s">音频一到窗口长度就送识别，不等攒满；检测到停顿会立刻出字。短窗口出字快、长句会被切成多段，长窗口整句更连贯。</div>
+            <div class="slider-row"><div class="slider-head"><div class="t">预识别提前量</div><div class="v" id="asrLookV">4 秒</div></div>
+              <input class="md-slider" type="range" id="asrLook" min="1" max="10" step="1" value="4"></div>
+            <div class="s">预读实例读取「播放位置 + n 秒」的音频先算好；n 越大越抗卡顿、越费流量，越小越省资源。</div>
           </div>
           <div class="st-item">
             <div class="left"><iconify-icon icon="lucide:play-circle"></iconify-icon><div><div class="t">进播放器自动开启</div><div class="s">模型就绪后打开影片即开始识别</div></div></div>
@@ -934,7 +934,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.3.0 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.3.1 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -2588,15 +2588,15 @@ const ASR_CATALOG={
   smallen:{id:"Xenova/whisper-small.en",name:"Whisper Small (English)",mb:239.6,langs:["英"],tags:["英文专用","高质"],desc:"英文长句 / 口音",note:"中文会输出乱码"}
 };
 const ASR_LANGS=[["auto","自动"],["chinese","中文"],["english","英语"],["japanese","日语"],["cantonese","粤语"]];
-let asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true};
+let asrCfg={model:"tiny",lookahead:4,auto:false,lang:"auto",pre:true};
 let asrState={};
 let asrDl=null;
 let asrWorker=null,asrLoadedModel="";
 
 function asrLoadCfg(){
-  try{asrCfg=Object.assign({model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true};}
+  try{asrCfg=Object.assign({model:"tiny",lookahead:4,auto:false,lang:"auto",pre:true},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:4,auto:false,lang:"auto",pre:true};}
   const n=Number(asrCfg.lookahead);
-  asrCfg.lookahead=isFinite(n)?Math.max(1,Math.min(6,n)):2;
+  asrCfg.lookahead=isFinite(n)?Math.max(1,Math.min(10,n)):4;
   if(!ASR_CATALOG[asrCfg.model])asrCfg.model="tiny";
   if(!ASR_LANGS.some(function(l){return l[0]===asrCfg.lang;}))asrCfg.lang="auto";
   asrCfg.auto=!!asrCfg.auto;
@@ -2805,13 +2805,13 @@ function initAsrUI(){
     else if(act==="asr-del"){asrDelete(key);}
   });
   const lk=document.getElementById("asrLook");
-  bindRange(lk," 秒",function(v){asrCfg.lookahead=v;asrSaveCfg();});
+  bindRange(lk," 秒",function(v){asrCfg.lookahead=v;asrSaveCfg();if(typeof asrPreSync==="function")asrPreSync();});
   const sw=document.getElementById("swAsrAuto");
   if(sw)sw.addEventListener("click",function(){asrCfg.auto=!asrCfg.auto;asrSaveCfg();setSw(sw,asrCfg.auto);toast(asrCfg.auto?"打开影片自动开启实时字幕":"已关闭自动开启");});
   const swp=document.getElementById("swAsrPre");
   if(swp)swp.addEventListener("click",function(){
     asrCfg.pre=asrCfg.pre===false;asrPreFail=false;asrSaveCfg();setSw(swp,asrCfg.pre);
-    toast(asrCfg.pre?"已开启预识别：提前 "+ASR_LOOK+" 秒算好字幕":"已改为实时识别，延迟随窗口增大");
+    toast(asrCfg.pre?("已开启预识别：提前 "+asrLookSec()+" 秒算好字幕"):"已改为实时识别，延迟随窗口增大");
     if(asrRunning()){asrStop();setTimeout(asrStart,150);}
   });
   asrLoadCfg();asrLoadState();renderAsr();
@@ -2839,7 +2839,8 @@ const ASR_WORKLET_SRC=[
 ].join("\n");
 let asrAudio=null,asrRun=null,asrBusy=false,asrSegs=[],pcmBuf=[],pcmLen=0,asrAudioPromise=null,asrWorkletReady=false;
 let asrBusyAt=0,asrSilentMs=0,asrLastFlush=0;
-const ASR_LOOK=6;
+function asrLookSec(){const n=Number(asrCfg.lookahead);return isFinite(n)?Math.max(1,Math.min(10,n)):4;}
+function asrWinSec(){return Math.max(1,Math.min(3,asrLookSec()));}
 let asrPreV=null,asrPreHls=null,asrPreNodes=null,asrUsePre=false,asrPreFail=false;
 let playerCurUrl="",playerCurM3u8=false;
 
@@ -2891,7 +2892,7 @@ async function asrPreAttach(url,isM3u8){
     const v=asrPreV;
     v.pause();
     await asrPreWait(v,isM3u8,url);
-    v.currentTime=Math.max(0,(videoEl.currentTime||0)+ASR_LOOK);
+    v.currentTime=Math.max(0,(videoEl.currentTime||0)+asrLookSec());
     await v.play();
     asrUsePre=true;
     return true;
@@ -2903,7 +2904,7 @@ async function asrPreAttach(url,isM3u8){
 }
 function asrPreSync(){
   if(!asrUsePre||!asrPreV)return;
-  const v=asrPreV,cur=videoEl.currentTime||0,target=cur+ASR_LOOK,d=v.duration;
+  const v=asrPreV,cur=videoEl.currentTime||0,target=cur+asrLookSec(),d=v.duration;
   if(isFinite(d)&&d>0&&target>d-0.5){if(!v.paused)v.pause();return;}
   if(Math.abs((v.currentTime||0)-target)>2.5){
     try{v.currentTime=Math.max(0,target);}catch(e){}
@@ -2934,7 +2935,7 @@ async function asrEnsureAudio(){
   try{return await asrAudioPromise;}finally{asrAudioPromise=null;}
 }
 const ASR_CAP_SEC=6.5,ASR_VAD_RMS=0.006,ASR_VAD_MS=320,ASR_MIN_SEC=1.8,ASR_GAP_MS=650;
-function asrWinSamples(){return Math.round(Math.max(1,Math.min(6,asrCfg.lookahead))*16000);}
+function asrWinSamples(){return Math.round(asrWinSec()*16000);}
 function asrRmsOf(arr){
   let sum=0,c=0;
   for(let i=0;i<arr.length;i+=8){sum+=arr[i]*arr[i];c++;}
@@ -3059,7 +3060,7 @@ async function asrStart(){
     }
     const tag=document.getElementById("subLiveTag");if(tag)tag.classList.add("on");
     subPaintPanel();
-    toast(ok?("实时字幕已开启 · 预识别 "+ASR_LOOK+" 秒"):"实时字幕已开启 · 实时模式");
+    toast(ok?("实时字幕已开启 · 预识别 "+asrLookSec()+" 秒"):"实时字幕已开启 · 实时模式");
   }catch(e){
     if(asrRun&&asrRun.active)asrRun=null;
     toast("无法采集音频："+((e&&e.message)||"环境不支持"));
