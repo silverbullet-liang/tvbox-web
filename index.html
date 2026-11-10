@@ -858,6 +858,10 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
             <div class="left"><iconify-icon icon="lucide:languages"></iconify-icon><div><div class="t">识别语言</div><div class="s">自动由模型判断；指定后更稳。英文专用模型忽略此项</div></div></div>
             <div class="limit-options" id="asrLangOptions"></div>
           </div>
+          <div class="st-item">
+            <div class="left"><iconify-icon icon="lucide:fast-forward"></iconify-icon><div><div class="t">预识别（推荐）</div><div class="s">用第二个静音解码实例读到后面 6 秒的音频，先把字幕算好缓存，播到那里立即显示</div></div></div>
+            <div class="sw" id="swAsrPre"><div class="sw-track"></div><div class="sw-thumb"></div></div>
+          </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:4px">
             <div class="slider-row"><div class="slider-head"><div class="t">提前识别（窗口秒数）</div><div class="v" id="asrLookV">2 秒</div></div>
               <input class="md-slider" type="range" id="asrLook" min="1" max="6" step="1" value="2"></div>
@@ -930,7 +934,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.2.2 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.3.0 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -2088,6 +2092,7 @@ function playEp(idx){
   currentQuality=-1;hideQualityMenu();
   startLoading();
   const isM3u8=url.includes(".m3u8")||url.includes("?v=m3u8")||url.includes("/hls/");
+  playerCurUrl=url;playerCurM3u8=isM3u8;
   const canPlay=()=>{
     stopLoading();showControls();
     const sharePos=wtPendingShare;wtPendingShare=null;
@@ -2418,6 +2423,7 @@ progressWrap.addEventListener("touchmove",(e)=>{if(seekDragging){e.preventDefaul
 progressWrap.addEventListener("touchend",()=>{seekDragging=false;});
 videoEl.addEventListener("timeupdate",()=>{
   resumeGuard();
+  asrPreSync();
   if(!videoEl.duration)return;
   if(playerSettings.skipEnd>0&&videoEl.duration>playerSettings.skipEnd+5){if(videoEl.currentTime>=videoEl.duration-playerSettings.skipEnd){if(!videoEl._skipEnding){videoEl._skipEnding=true;handleEpisodeEnd();}return;}}
   if(seekDragging||Date.now()<seekLockUntil)return;
@@ -2430,6 +2436,7 @@ videoEl.addEventListener("pause",()=>{isPlaying=false;updPlayBtn();savePosition(
 videoEl.addEventListener("ended",()=>{isPlaying=false;updPlayBtn();handleEpisodeEnd();});
 videoEl.addEventListener("waiting",()=>{startLoading()});
 videoEl.addEventListener("loadedmetadata",resumeGuard);
+videoEl.addEventListener("seeked",()=>{asrPreSync();});
 videoEl.addEventListener("durationchange",resumeGuard);
 videoEl.addEventListener("playing",()=>{stopLoading()});
 videoEl.addEventListener("canplay",()=>{stopLoading()});
@@ -2581,18 +2588,19 @@ const ASR_CATALOG={
   smallen:{id:"Xenova/whisper-small.en",name:"Whisper Small (English)",mb:239.6,langs:["英"],tags:["英文专用","高质"],desc:"英文长句 / 口音",note:"中文会输出乱码"}
 };
 const ASR_LANGS=[["auto","自动"],["chinese","中文"],["english","英语"],["japanese","日语"],["cantonese","粤语"]];
-let asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto"};
+let asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true};
 let asrState={};
 let asrDl=null;
 let asrWorker=null,asrLoadedModel="";
 
 function asrLoadCfg(){
-  try{asrCfg=Object.assign({model:"tiny",lookahead:2,auto:false,lang:"auto"},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto"};}
+  try{asrCfg=Object.assign({model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true},JSON.parse(safeGet(ASR_CFG_KEY,"{}"))||{});}catch(e){asrCfg={model:"tiny",lookahead:2,auto:false,lang:"auto",pre:true};}
   const n=Number(asrCfg.lookahead);
   asrCfg.lookahead=isFinite(n)?Math.max(1,Math.min(6,n)):2;
   if(!ASR_CATALOG[asrCfg.model])asrCfg.model="tiny";
   if(!ASR_LANGS.some(function(l){return l[0]===asrCfg.lang;}))asrCfg.lang="auto";
   asrCfg.auto=!!asrCfg.auto;
+  asrCfg.pre=asrCfg.pre!==false;
 }
 function asrSaveCfg(){safeSet(ASR_CFG_KEY,JSON.stringify(asrCfg));}
 function asrLoadState(){try{asrState=JSON.parse(safeGet(ASR_STATE_KEY,"{}"))||{};}catch(e){asrState={};}}
@@ -2785,6 +2793,7 @@ function renderAsr(){
     });
   }
   setSw(document.getElementById("swAsrAuto"),asrCfg.auto);
+  setSw(document.getElementById("swAsrPre"),asrCfg.pre!==false);
 }
 function initAsrUI(){
   const list=document.getElementById("asrList");
@@ -2799,6 +2808,12 @@ function initAsrUI(){
   bindRange(lk," 秒",function(v){asrCfg.lookahead=v;asrSaveCfg();});
   const sw=document.getElementById("swAsrAuto");
   if(sw)sw.addEventListener("click",function(){asrCfg.auto=!asrCfg.auto;asrSaveCfg();setSw(sw,asrCfg.auto);toast(asrCfg.auto?"打开影片自动开启实时字幕":"已关闭自动开启");});
+  const swp=document.getElementById("swAsrPre");
+  if(swp)swp.addEventListener("click",function(){
+    asrCfg.pre=asrCfg.pre===false;asrPreFail=false;asrSaveCfg();setSw(swp,asrCfg.pre);
+    toast(asrCfg.pre?"已开启预识别：提前 "+ASR_LOOK+" 秒算好字幕":"已改为实时识别，延迟随窗口增大");
+    if(asrRunning()){asrStop();setTimeout(asrStart,150);}
+  });
   asrLoadCfg();asrLoadState();renderAsr();
 }
 const ASR_WORKLET_SRC=[
@@ -2824,8 +2839,80 @@ const ASR_WORKLET_SRC=[
 ].join("\n");
 let asrAudio=null,asrRun=null,asrBusy=false,asrSegs=[],pcmBuf=[],pcmLen=0,asrAudioPromise=null,asrWorkletReady=false;
 let asrBusyAt=0,asrSilentMs=0,asrLastFlush=0;
+const ASR_LOOK=6;
+let asrPreV=null,asrPreHls=null,asrPreNodes=null,asrUsePre=false,asrPreFail=false;
+let playerCurUrl="",playerCurM3u8=false;
 
 function asrRunning(){return !!(asrRun&&asrRun.active);}
+async function asrWorkletNode(ctx){
+  if(!asrWorkletReady){
+    const url=URL.createObjectURL(new Blob([ASR_WORKLET_SRC],{type:"application/javascript"}));
+    await ctx.audioWorklet.addModule(url);
+    asrWorkletReady=true;
+  }
+  const proc=new AudioWorkletNode(ctx,"asr-cap",{numberOfInputs:1,numberOfOutputs:0});
+  proc.port.onmessage=function(e){asrOnPcm(e.data);};
+  return proc;
+}
+function asrPreWait(v,isM3u8,url){
+  return new Promise(function(res){
+    let done=false;
+    const fin=function(){if(done)return;done=true;res(true);};
+    setTimeout(fin,3500);
+    if(isM3u8&&window.Hls&&Hls.isSupported()){
+      try{if(asrPreHls)asrPreHls.destroy();}catch(e){}
+      asrPreHls=new Hls({enableWorker:false,maxBufferLength:60});
+      asrPreHls.loadSource(url);
+      asrPreHls.attachMedia(v);
+      asrPreHls.on(Hls.Events.MANIFEST_PARSED,fin);
+      asrPreHls.on(Hls.Events.ERROR,function(e,d){if(d&&d.fatal)fin();});
+    }else{
+      v.removeAttribute("src");v.load();
+      v.addEventListener("loadedmetadata",fin,{once:true});
+      v.addEventListener("error",fin,{once:true});
+      v.src=url;
+    }
+  });
+}
+async function asrPreAttach(url,isM3u8){
+  if(asrCfg.pre===false||asrPreFail||!url)return false;
+  try{
+    const ctx=mediaAudio().ctx;
+    if(ctx.state==="suspended")await ctx.resume().catch(function(){});
+    if(!asrPreV){
+      const v=document.createElement("video");
+      v.playsInline=true;v.preload="auto";v.setAttribute("playsinline","");
+      v.style.cssText="position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1";
+      document.body.appendChild(v);
+      const proc=await asrWorkletNode(ctx);
+      ctx.createMediaElementSource(v).connect(proc);
+      asrPreV=v;asrPreNodes={proc:proc};
+    }
+    const v=asrPreV;
+    v.pause();
+    await asrPreWait(v,isM3u8,url);
+    v.currentTime=Math.max(0,(videoEl.currentTime||0)+ASR_LOOK);
+    await v.play();
+    asrUsePre=true;
+    return true;
+  }catch(e){
+    asrUsePre=false;
+    asrPreFail=!!(e&&/NotAllowed|AUTOPLAY/i.test(e.name+e.message));
+    return false;
+  }
+}
+function asrPreSync(){
+  if(!asrUsePre||!asrPreV)return;
+  const v=asrPreV,cur=videoEl.currentTime||0,target=cur+ASR_LOOK,d=v.duration;
+  if(isFinite(d)&&d>0&&target>d-0.5){if(!v.paused)v.pause();return;}
+  if(Math.abs((v.currentTime||0)-target)>2.5){
+    try{v.currentTime=Math.max(0,target);}catch(e){}
+    pcmBuf=[];pcmLen=0;asrSilentMs=0;asrLastFlush=0;
+  }
+  if(Math.abs((v.playbackRate||1)-(videoEl.playbackRate||1))>0.01)v.playbackRate=videoEl.playbackRate;
+  if(videoEl.paused){if(!v.paused)v.pause();}
+  else if(v.paused)v.play().catch(function(){});
+}
 async function asrEnsureAudio(){
   if(asrAudio)return asrAudio;
   if(asrAudioPromise)return asrAudioPromise;
@@ -2872,7 +2959,8 @@ function asrFlush(){
   for(const c of pcmBuf){all.set(c,o);o+=c.length;}
   const clip=all.slice(Math.max(0,all.length-Math.min(asrWinSamples(),all.length)));
   if(asrRmsOf(clip)<0.004)return;
-  const t1=videoEl.currentTime||0,t0=Math.max(0,t1-clip.length/16000);
+  const srcEl=(asrUsePre&&asrPreV)?asrPreV:videoEl;
+  const t1=srcEl.currentTime||0,t0=Math.max(0,t1-clip.length/16000);
   asrSilentMs=0;asrLastFlush=Date.now();asrBusy=true;
   const wid=Date.now();asrBusyAt=wid;
   setTimeout(function(){if(asrBusy&&asrBusyAt===wid)asrBusy=false;},12000);
@@ -2956,21 +3044,33 @@ async function asrStart(){
     if(!asrState[cat.id]&&!asrDl){toast("「"+cat.name+"」模型还没下载，先去设置下载");subClosePanel();switchPage("settings");return;}
     try{asrEnsureWorker().postMessage({type:"load",model:cat.id,device:navigator.gpu?"webgpu":"wasm"});}catch(e){toast("识别引擎启动失败");return;}
   }
+  asrRun={active:true};
+  asrSegs=[];subLiveCues=[];pcmBuf=[];pcmLen=0;asrBusy=false;asrSilentMs=0;asrLastFlush=0;
   try{
-    const a=await asrEnsureAudio();
-    if(a.ctx.state==="suspended")await a.ctx.resume();
-    a.src.connect(a.proc);
-    asrRun={active:true};
-    asrSegs=[];subLiveCues=[];pcmBuf=[];pcmLen=0;asrBusy=false;asrSilentMs=0;asrLastFlush=0;
+    let ok=false;
+    if(typeof playerCurUrl!=="undefined"&&playerCurUrl)ok=await asrPreAttach(playerCurUrl,playerCurM3u8);
+    if(ok){
+      asrPreSync();
+    }else{
+      asrUsePre=false;
+      const a=await asrEnsureAudio();
+      if(a.ctx.state==="suspended")await a.ctx.resume();
+      a.src.connect(a.proc);
+    }
     const tag=document.getElementById("subLiveTag");if(tag)tag.classList.add("on");
     subPaintPanel();
-    toast("实时字幕已开启");
-  }catch(e){toast("无法采集音频："+((e&&e.message)||"环境不支持"));}
+    toast(ok?("实时字幕已开启 · 预识别 "+ASR_LOOK+" 秒"):"实时字幕已开启 · 实时模式");
+  }catch(e){
+    if(asrRun&&asrRun.active)asrRun=null;
+    toast("无法采集音频："+((e&&e.message)||"环境不支持"));
+  }
 }
 function asrStop(){
   if(asrRun)asrRun.active=false;
   asrRun=null;asrBusy=false;pcmBuf=[];pcmLen=0;asrSilentMs=0;asrLastFlush=0;
+  asrUsePre=false;
   if(asrAudio){try{asrAudio.src.disconnect(asrAudio.proc);}catch(e){}}
+  if(asrPreV){try{asrPreV.pause();}catch(e){}}
   const tag=document.getElementById("subLiveTag");if(tag)tag.classList.remove("on");
   subPaintPanel();
 }

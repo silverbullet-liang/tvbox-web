@@ -63,6 +63,7 @@ TEST=r"""(async()=>{
     beta:document.body.innerHTML.includes('Beta'),
     look:(()=>{const el=document.getElementById('asrLook');return el?{min:el.min,max:el.max,value:el.value,label:el.parentElement.parentElement.querySelector('.t').textContent}:null;})(),
     lookV:(document.getElementById('asrLookV')||{}).textContent||'',
+    preSw:(()=>{const el=document.getElementById('swAsrPre');return el?{inDom:true,cls:el.className}:(typeof document.getElementById('swAsrPre')==='undefined'?'missing':null);})(),
     errs:window.__errs||[]
   });
 })()"""

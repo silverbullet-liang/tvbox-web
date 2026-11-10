@@ -159,7 +159,7 @@ The **Share** button builds a `TVC1:` string (JSON → deflate-raw → base64url
 | Whisper Base (English) | 75.4 MB | EN | Mostly English |
 | Whisper Small (English) | 239.6 MB | EN | English long-form, accents |
 
-The app scores your device (CPU cores, memory, WebGPU, mobile) and marks the recommended model (Medium only on strong desktops). The spoken language can be set to auto / Chinese / English / Japanese / Cantonese for steadier output; English-only models ignore it. Download progress, speed and size are shown; the cache can be deleted at any time. "Look-ahead" (1–6 s, default 2) trades latency for fuller sentences: audio is sent as soon as the window fills, and a detected pause triggers recognition immediately, so the tail of a sentence lands almost instantly.
+The app scores your device (CPU cores, memory, WebGPU, mobile) and marks the recommended model (Medium only on strong desktops). The spoken language can be set to auto / Chinese / English / Japanese / Cantonese for steadier output; English-only models ignore it. Download progress, speed and size are shown; the cache can be deleted at any time. "Look-ahead" (1–6 s, default 2) trades latency for fuller sentences: audio is sent as soon as the window fills, and a detected pause triggers recognition immediately. A "pre-recognition" pass also opens a second, silent decoding instance that reads the 6 seconds ahead of the playhead, recognises them and caches the text by media time, so subtitles are already there when playback arrives; turn it off to fall back to real-time recognition.
 
 > The inference library is loaded from jsDelivr and the model weights from ModelScope; HuggingFace is not used. Live subtitles require HTTPS or localhost.
 
