@@ -189,8 +189,6 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .limit-btn{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ol);background:transparent;color:var(--on-sf-v);font-family:inherit;transition:all .2s;white-space:nowrap}
 .limit-btn:hover{background:var(--sf)}
 .limit-btn.active{background:var(--p);color:var(--on-p);border-color:transparent}
-#corsProxyInput{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid var(--ol);background:var(--sf);color:var(--on-sf-v);font:inherit;font-size:13px;outline:none;margin-top:4px}
-#corsProxyInput:focus{border-color:var(--p)}
 .kbd-list{padding:8px 18px 16px}
 .kbd-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--on-sf-v);border-bottom:1px dashed var(--ol-v)}
 .kbd-row:last-child{border-bottom:none}
@@ -903,14 +901,12 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         <div class="st-label">跨域代理</div>
         <div class="st-card">
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:8px">
-            <div class="left" style="gap:14px"><iconify-icon icon="lucide:globe" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">代理模式</div><div class="s">量子、暴风、红牛等源已关闭 CORS，自动模式经第三方代理</div></div></div>
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:globe" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">代理模式</div><div class="s">量子、暴风等源已关闭 CORS，内置代理自动接管；无需配置</div></div></div>
             <div class="limit-options" id="corsModeOptions">
-              <button class="limit-btn" data-mode="auto">自动</button>
+              <button class="limit-btn" data-mode="auto">内置代理</button>
               <button class="limit-btn" data-mode="off">关闭</button>
-              <button class="limit-btn" data-mode="custom">自定义</button>
             </div>
-            <input id="corsProxyInput" type="text" placeholder="https://your-proxy/?url={url}" autocomplete="off" spellcheck="false">
-            <div class="s" style="font-size:11px;line-height:1.6">留空使用内置第三方代理；填写后优先使用自定义地址，{url} 会替换为目标地址。</div>
+            <div class="s" style="font-size:11px;line-height:1.6">内置多个公开 CORS 代理，失败自动切换，无需配置。关闭后只直连（需要目标源本身允许跨域）。</div>
           </div>
         </div>
       </div>
@@ -934,7 +930,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.3.4 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.4.0 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1269,6 +1265,7 @@ function loadStorage(){
     favorites=f?JSON.parse(f):[];history=h?JSON.parse(h):[];currentTheme=t||"purple";
     const pl=parseInt(hl,10);histLimit=isNaN(pl)?HIST_LIMIT_DEFAULT:pl;
     if(ps){try{playerSettings={...DEFAULT_PLAYER_SETTINGS,...JSON.parse(ps)};}catch(e){}}
+    if(playerSettings.corsMode!=="auto"&&playerSettings.corsMode!=="off")playerSettings.corsMode="auto";
     if(pc){try{positionCache=JSON.parse(pc);}catch(e){}}
     if(m!=="1") setTimeout(showWelcome,600);
   }catch(e){sources=JSON.parse(JSON.stringify(DEFAULT_SOURCES));favorites=[];history=[];currentTheme="purple";histLimit=HIST_LIMIT_DEFAULT;setTimeout(showWelcome,600);}
@@ -1303,12 +1300,12 @@ function applyTheme(name){
   document.querySelectorAll(".theme-option").forEach(el=>el.classList.toggle("active",el.dataset.theme===currentTheme));
 }
 function buildUrl(src,params){let url=src.api;if(!url.endsWith("/"))url+="/";return url+"?"+new URLSearchParams(params).toString();}
-const CORS_MIRROR="https://corsmirror.com/v1?url=";
-function proxyUrl(url){
-  const custom=(playerSettings.corsProxy||"").trim();
-  if(custom)return custom.indexOf("{url}")>=0?custom.replace("{url}",encodeURIComponent(url)):custom+encodeURIComponent(url);
-  return CORS_MIRROR+encodeURIComponent(url);
-}
+/* 内置 CORS 代理链：按顺序尝试，第一个失败自动换下一个。刻意不开放自定义——填错一个地址会让整站取数失败。 */
+const CORS_PROXIES=[
+  function(u){return "https://4ketf1jgc1nbd.doubaoapps.com/app/app_17hst8x2js8/cors/"+encodeURIComponent(u);},
+  function(u){return "https://corsmirror.com/v1?url="+encodeURIComponent(u);}
+];
+function proxyUrl(url,idx){return (CORS_PROXIES[idx||0]||CORS_PROXIES[0])(url);}
 async function fetchJson(url,timeoutMs){
   const ctrl=new AbortController(),to=setTimeout(()=>ctrl.abort(),timeoutMs||12000);
   try{
@@ -1322,10 +1319,14 @@ async function fetchJson(url,timeoutMs){
 async function apiFetch(url,src,timeoutMs){
   const mode=playerSettings.corsMode||"auto";
   if(mode==="off")return fetchJson(url,timeoutMs);
-  if(mode==="custom")return fetchJson(proxyUrl(url),15000);
   const knownCors=src&&src.cors===false;
-  if(!knownCors){try{return await fetchJson(url,4000)}catch(e){}}
-  return fetchJson(proxyUrl(url),15000);
+  if(!knownCors){try{return await fetchJson(url,3500)}catch(e){}}
+  let err=null;
+  for(let i=0;i<CORS_PROXIES.length;i++){
+    try{return await fetchJson(proxyUrl(url,i),12000);}
+    catch(e){err=e;}
+  }
+  throw err||new Error("代理不可用");
 }
 async function apiList(src,page,wd,t){
   const params={ac:"list",pg:page};if(wd)params.wd=wd;if(t)params.t=t;
@@ -1724,9 +1725,7 @@ function renderSettings(){
   sources.forEach((src,idx)=>{const item=document.createElement("div");item.className="st-item";const noProxyTag=src.noProxy?`<span class="tag-inline">免代理</span>`:"";item.innerHTML=`<div class="left" style="flex:1;min-width:0">${iconTag('rss',22)}<div style="flex:1;min-width:0;overflow:hidden"><div class="t" style="display:flex;align-items:center;flex-wrap:wrap">${esc(src.name)}${noProxyTag}</div><div class="s" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(src.api)}</div></div></div><div class="sw ${src.enabled?'on':''}" data-idx="${idx}"><div class="sw-track"></div><div class="sw-thumb"></div></div>`;list.appendChild(item);});
   list.querySelectorAll(".sw").forEach(sw=>{sw.addEventListener("click",()=>{const idx=parseInt(sw.dataset.idx);sources[idx].enabled=!sources[idx].enabled;sw.classList.toggle("on",sources[idx].enabled);saveSrc();updSrcCount();rebuildFilters();toast(`${sources[idx].name} 已${sources[idx].enabled?"启用":"禁用"}`)})});
   const corsBox=document.getElementById("corsModeOptions");
-  if(corsBox){corsBox.querySelectorAll(".limit-btn").forEach(btn=>{btn.classList.toggle("active",(playerSettings.corsMode||"auto")===btn.dataset.mode);btn.onclick=()=>{playerSettings.corsMode=btn.dataset.mode;savePlayerSettings();renderSettings();toast(btn.dataset.mode==="off"?"已关闭跨域代理":btn.dataset.mode==="custom"?"使用自定义代理":"自动选择代理");};});}
-  const corsInput=document.getElementById("corsProxyInput");
-  if(corsInput){corsInput.value=playerSettings.corsProxy||"";corsInput.onchange=()=>{playerSettings.corsProxy=corsInput.value.trim();savePlayerSettings();toast(corsInput.value.trim()?"代理地址已保存":"已清空代理地址");};}
+  if(corsBox){corsBox.querySelectorAll(".limit-btn").forEach(btn=>{btn.classList.toggle("active",(playerSettings.corsMode||"auto")===btn.dataset.mode);btn.onclick=()=>{playerSettings.corsMode=btn.dataset.mode;savePlayerSettings();renderSettings();toast(btn.dataset.mode==="off"?"已关闭跨域代理":"使用内置代理");};});}
   if(typeof wtRenderSettings==="function")wtRenderSettings();
   updSrcCount();
 }

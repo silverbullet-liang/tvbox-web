@@ -56,7 +56,7 @@ License: `AGPL-3.0-or-later`
 | Watch Together shares (`TVC1:` / clipboard & search) | — | Yes |
 | Encrypted backup (`.tvcbak` export / import) | — | Yes |
 | Auto-skip ads (Worker pre-check / range hint / cancel) | — | Yes |
-| CORS proxy (auto / off / custom) | Yes | Yes |
+| CORS proxy (built-in / off) | Yes | Yes |
 | Home feed (carousel banner + recommendation grid) | — | Yes |
 | Subtitle import (SRT / VTT / ASS / SSA, encoding auto-detect, drag-and-drop) | Yes | Yes |
 | Subtitle styling (font / size / outline / background / position) | — | Yes |
@@ -221,11 +221,12 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
 
 ## CORS proxy
 
-All seven bundled sources no longer send `Access-Control-Allow-Origin`. Both Pro and Mini ship a three-level chain (Mini: Settings → Network):
+All seven bundled sources no longer send `Access-Control-Allow-Origin`. Both Pro and Mini ship a built-in proxy chain with **no custom address field** (a wrong proxy breaks every data request, so only verified endpoints are kept):
 
-- **Auto (default)**: sources known to lack CORS go through `corsmirror.com`; others try direct for 4s, then fall back.
-- **Off**: direct only.
-- **Custom**: your own proxy, `{url}` placeholder supported.
+- **Built-in (default)**: sources known to lack CORS go through the proxy; others try direct for 3.5s, then fall back. Proxies are tried in order, with automatic failover.
+- **Off**: direct only, for endpoints that already send CORS headers.
+
+Quota of the built-in proxies: 500k requests / IP / day and 5 GB / IP / day, reset at UTC 00:00, 15s per-request timeout.
 
 Only API calls are proxied; m3u8 and ts segments still connect directly.
 
@@ -300,7 +301,7 @@ Since v1.8.6, opening it in portrait requests real landscape first; if unavailab
 Make sure the key matches the export key exactly; unsupported versions, corrupted files and missing GZIP compression share the same message. Export a fresh backup with the current version and retry.
 
 **No search results?**
-Usually an endpoint outage or a CORS limit. Use a local server / HTTPS, or switch sources in settings.
+Usually an endpoint outage or a CORS limit. The built-in proxy is applied automatically; if it also fails, the source is down — switch sources or retry later.
 
 **Black screen / endless buffering?**
 The m3u8 source is often dead or the network is restricted — try another line or episode.

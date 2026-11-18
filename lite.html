@@ -157,8 +157,6 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .limit-options{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
 .limit-btn{flex:1;min-width:72px;padding:9px 12px;border-radius:10px;border:1px solid var(--ol);background:var(--sf);color:var(--on-sf-v);font:inherit;font-size:13px;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 .limit-btn.active{background:var(--p);border-color:var(--p);color:var(--on-p)}
-#corsProxyInput{width:100%;box-sizing:border-box;padding:11px 13px;border-radius:10px;border:1px solid var(--ol);background:var(--sf);color:var(--on-sf-v);font:inherit;font-size:13px;outline:none;margin-top:4px}
-#corsProxyInput:focus{border-color:var(--p)}
 .st-item:last-child{border-bottom:none}
 .st-item .left{display:flex;align-items:center;gap:14px}
 .st-item .left iconify-icon{font-size:22px;color:var(--on-sf-v);flex-shrink:0}
@@ -490,12 +488,10 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:9px">
             <div class="left" style="gap:12px;align-items:flex-start"><iconify-icon icon="lucide:globe" style="font-size:22px;color:var(--on-sf-v);margin-top:1px"></iconify-icon><div><div class="t">跨域代理</div><div class="s" style="line-height:1.55">量子资源已关闭 CORS，自动模式经第三方代理请求列表与详情；视频流仍直连。</div></div></div>
             <div class="limit-options" id="corsModeOptions">
-              <button class="limit-btn" data-mode="auto">自动</button>
+              <button class="limit-btn" data-mode="auto">内置代理</button>
               <button class="limit-btn" data-mode="off">关闭</button>
-              <button class="limit-btn" data-mode="custom">自定义</button>
             </div>
-            <input id="corsProxyInput" type="text" placeholder="https://your-proxy/?url={url}" autocomplete="off" spellcheck="false">
-            <div class="s" style="font-size:11px;line-height:1.6">留空使用内置第三方代理；填写后优先使用自定义地址，{url} 会替换为目标地址。</div>
+            <div class="s" style="font-size:11px;line-height:1.6">内置多个公开 CORS 代理，失败自动切换，无需配置。</div>
           </div>
         </div>
       </div>
@@ -519,7 +515,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web · 轻量版</div><div class="s">v2.3.4 · 量子资源版 · 支持字幕</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web · 轻量版</div><div class="s">v2.4.0 · 量子资源版 · 支持字幕</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -650,7 +646,7 @@ let playerItem=null,playerSources={},playerSrc="",playerEp=0,hlsInst=null,isPlay
 let controlsTimer=null,loadDelayTimer=null,loadTimerInterval=null,loadStartTime=0;
 let currentRatio="auto",currentQuality=-1;
 let seekDragging=false,seekLockUntil=0;
-let corsMode="auto",corsProxy="";
+let corsMode="auto";
 
 function iconTag(name,size){return `<iconify-icon icon="lucide:${name}"${size?` style="font-size:${size}px"`:""}></iconify-icon>`}
 
@@ -662,7 +658,8 @@ function loadStorage(){
     if(s){const sv=JSON.parse(s);sources=DEFAULT_SOURCES.map(ds=>{const fd=sv.find(x=>x.key===ds.key);return fd?{...ds,enabled:fd.enabled}:ds})}
     else sources=JSON.parse(JSON.stringify(DEFAULT_SOURCES));
     favorites=f?JSON.parse(f):[];history=h?JSON.parse(h):[];currentTheme=t||"purple";
-    if(px){const pv=JSON.parse(px);corsMode=pv.mode||"auto";corsProxy=pv.url||"";}
+    if(px){const pv=JSON.parse(px);corsMode=pv.mode||"auto";}
+    if(corsMode!=="auto"&&corsMode!=="off")corsMode="auto";
     if(m!=="1")setTimeout(showWelcome,600);
   }catch(e){sources=JSON.parse(JSON.stringify(DEFAULT_SOURCES));favorites=[];history=[];currentTheme="purple";setTimeout(showWelcome,600);}
 }
@@ -692,12 +689,12 @@ function buildUrl(src,params){
   url+="?"+new URLSearchParams(params).toString();
   return url;
 }
-const CORS_MIRROR="https://corsmirror.com/v1?url=";
-function proxyUrl(url){
-  const c=(corsProxy||"").trim();
-  if(c)return c.indexOf("{url}")>=0?c.replace("{url}",encodeURIComponent(url)):c+encodeURIComponent(url);
-  return CORS_MIRROR+encodeURIComponent(url);
-}
+/* 内置 CORS 代理链：失败自动换下一个，不开放自定义 */
+const CORS_PROXIES=[
+  function(u){return "https://4ketf1jgc1nbd.doubaoapps.com/app/app_17hst8x2js8/cors/"+encodeURIComponent(u);},
+  function(u){return "https://corsmirror.com/v1?url="+encodeURIComponent(u);}
+];
+function proxyUrl(url,idx){return (CORS_PROXIES[idx||0]||CORS_PROXIES[0])(url);}
 async function fetchJson(url,timeoutMs){
   const ctrl=new AbortController(),to=setTimeout(()=>ctrl.abort(),timeoutMs||12000);
   try{
@@ -709,9 +706,13 @@ async function fetchJson(url,timeoutMs){
 }
 async function apiFetch(url,src,timeoutMs){
   if(corsMode==="off")return fetchJson(url,timeoutMs);
-  if(corsMode==="custom")return fetchJson(proxyUrl(url),15000);
-  if(!(src&&src.cors===false)){try{return await fetchJson(url,4000)}catch(e){}}
-  return fetchJson(proxyUrl(url),15000);
+  if(!(src&&src.cors===false)){try{return await fetchJson(url,3500)}catch(e){}}
+  let err=null;
+  for(let i=0;i<CORS_PROXIES.length;i++){
+    try{return await fetchJson(proxyUrl(url,i),12000);}
+    catch(e){err=e;}
+  }
+  throw err||new Error("代理不可用");
 }
 async function apiList(src,page,wd,t){
   const params={ac:"list",pg:page};if(wd)params.wd=wd;if(t)params.t=t;
@@ -931,12 +932,10 @@ function renderSettings(){
 function renderProxyUI(){
   document.querySelectorAll("#corsModeOptions .limit-btn").forEach(btn=>{
     btn.classList.toggle("active",corsMode===btn.dataset.mode);
-    btn.onclick=()=>{corsMode=btn.dataset.mode;saveProxy();renderProxyUI();toast(corsMode==="off"?"已关闭跨域代理":corsMode==="custom"?"使用自定义代理":"自动选择代理")};
+    btn.onclick=()=>{corsMode=btn.dataset.mode;saveProxy();renderProxyUI();toast(corsMode==="off"?"已关闭跨域代理":"使用内置代理")};
   });
-  const inp=document.getElementById("corsProxyInput");
-  if(inp){inp.value=corsProxy;inp.onchange=()=>{corsProxy=inp.value.trim();saveProxy();toast(corsProxy?"代理地址已保存":"已清空代理地址")};}
 }
-function saveProxy(){try{localStorage.setItem("tvbox_proxy",JSON.stringify({mode:corsMode,url:corsProxy}))}catch(e){}}
+function saveProxy(){try{localStorage.setItem("tvbox_proxy",JSON.stringify({mode:corsMode}))}catch(e){}}
 function updSrcCount(){const en=sources.filter(s=>s.enabled).length;document.getElementById("srcCount").textContent=`${en}/${sources.length}`}
 
 function startLoading(){
