@@ -8,7 +8,7 @@ Open one HTML file in a browser to search, play and cast — no backend, no inst
 
 Two editions are provided:
 
-- **Pro (`index.html`)** — full-featured. Ships thirteen sources, all server-searchable, plus subtitles (import, styling, on-device live captions), home preloading, casting, long-press speed, intro/outro skip, resume position and more.
+- **Pro (`index.html`)** — full-featured. Ships twenty sources, all server-searchable, plus subtitles (import, styling, on-device live captions), home preloading, casting, long-press speed, intro/outro skip, resume position and more.
 - **Mini (`lite.html`)** — lightweight. A single data source, a leaner UI, suitable for low-end devices and quick deploys.
 
 License: `AGPL-3.0-or-later`
@@ -35,9 +35,11 @@ License: `AGPL-3.0-or-later`
 
 | Capability | Mini | Pro |
 | --- | :--: | :--: |
-| Bundled sources | 1 | 13 (all server-searchable) |
+| Bundled sources | 4 | 20 (all server-searchable) |
 | Parallel multi-source search | Yes | Yes |
 | Search suggestions | — | Yes |
+| Search history (auto-recorded, one-tap clear) | Yes | Yes |
+| Source health check (auto-disable dead sources) | Yes | Yes |
 | HLS playback (hls.js) | Yes | Yes |
 | Quality switch | Yes | Yes |
 | Aspect ratio | Yes | Yes |
@@ -221,9 +223,14 @@ const worker = new Worker(URL.createObjectURL(new Blob([`
 
 ## CORS proxy
 
-All seven bundled sources no longer send `Access-Control-Allow-Origin`. Both Pro and Mini ship a built-in proxy chain with **no custom address field** (a wrong proxy breaks every data request, so only verified endpoints are kept):
+None of the 20 bundled sources sends `Access-Control-Allow-Origin` — that is the upstream's policy, so a browser cannot read their responses directly. Both Pro and Lite ship a built-in proxy chain with **no custom address field** (a wrong proxy breaks every data request, so only verified endpoints are kept):
 
-- **Built-in (default)**: sources known to lack CORS go through the proxy; others try direct for 3.5s, then fall back. Proxies are tried in order, with automatic failover.
+- **Built-in (default)**: sources not yet checked go straight through the proxy; only sources verified as "direct works" try direct first. Proxies are tried in order, with automatic failover.
+- **Off**: direct only — meant for a self-hosted same-origin reverse proxy. Bundled sources return nothing in this mode.
+
+### Source health check
+
+Settings → Data sources → **Check all sources**: each source is probed in the order direct → proxy 1 → proxy 2. If all three fail it is marked dead and disabled automatically. Results are stored locally and can be cleared with **Reset**. A source that answers directly is labelled "direct" and preferred for later requests.
 - **Off**: direct only, for endpoints that already send CORS headers.
 
 Quota of the built-in proxies: 500k requests / IP / day and 5 GB / IP / day, reset at UTC 00:00, 15s per-request timeout.
@@ -244,7 +251,7 @@ Endpoint URLs live in the `DEFAULT_SOURCES` array at the top of each file and ca
 
 ```js
 const DEFAULT_SOURCES = [
-  { key:"lzi", name:"LZI", api:"https://example.com/api.php/provide/vod/", type:1, enabled:true, noProxy:true }
+  { key:"lzi", name:"LZI", api:"https://example.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false }
 ];
 ```
 

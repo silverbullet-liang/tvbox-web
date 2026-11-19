@@ -154,6 +154,19 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .chip{flex-shrink:0;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--ol);color:var(--on-sf-v);background:transparent;transition:all .2s;white-space:nowrap}
 .chip:hover{background:var(--sf-v)}
 .chip.active{background:var(--s-c);color:var(--on-s-c);border-color:transparent}
+.src-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--ol-v);display:inline-block;margin-left:6px}
+.src-dot[data-st="ok"]{background:#2e9e5b}
+.src-dot[data-st="bad"]{background:#c94a3b}
+.src-st{font-size:11px;color:var(--on-sf-v);margin-left:6px;flex-shrink:0}
+.search-hist{margin:2px 0 6px}
+.sh-head{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px;font-size:12px;color:var(--on-sf-v)}
+.sh-clear{background:none;border:none;font:inherit;color:var(--p);cursor:pointer;padding:3px 8px;border-radius:8px}
+.sh-clear:hover{background:var(--sf-v)}
+.sh-list{display:flex;flex-wrap:wrap;gap:8px}
+.sh-item{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:6px 13px;border-radius:999px;background:var(--sf-v);color:var(--on-sf);font-size:13px;cursor:pointer;transition:background .15s}
+.sh-item:hover{background:var(--sf-v)}
+.sh-item iconify-icon{font-size:14px;color:var(--on-sf-v);flex-shrink:0}
+.sh-item .kw{max-width:10em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .loading{display:flex;justify-content:center;align-items:center;padding:32px;gap:6px}
 .loading .dot{width:8px;height:8px;border-radius:50%;background:var(--p);animation:bounce 1.2s infinite ease-in-out both}
 .loading .dot:nth-child(2){animation-delay:-.24s}
@@ -609,6 +622,10 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           <div class="suggest-box" id="suggestBox"></div>
         </div>
       </div>
+      <div class="search-hist" id="searchHist" style="display:none">
+        <div class="sh-head"><span>搜索历史</span><button type="button" class="sh-clear" id="shClear">清空</button></div>
+        <div class="sh-list" id="shList"></div>
+      </div>
       <div class="filter-chips" id="searchFilters"><div class="chip active" data-source="all">全部</div></div>
       <div class="media-grid" id="searchGrid"></div>
       <div class="loading" id="searchLoading" style="display:none"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -895,18 +912,28 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">数据源 <span id="srcCount" style="color:var(--p)"></span></div>
+        <div class="st-card">
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="left"><iconify-icon icon="lucide:activity"></iconify-icon><div><div class="t">可用性检测</div><div class="s">逐源实测取数：先试直连，不通再用内置代理，两条都不通的自动停用</div></div></div>
+            <div class="limit-options">
+              <button class="limit-btn" id="srcProbe">检测全部源</button>
+              <button class="limit-btn" id="srcProbeReset">重置状态</button>
+            </div>
+            <div class="s" style="font-size:11px;line-height:1.6">检测关键词「庆余年」。探测会覆盖所有源（含已停用的），结果记在本机。</div>
+          </div>
+        </div>
         <div class="st-card" id="sourceList"></div>
       </div>
       <div class="st-section">
         <div class="st-label">跨域代理</div>
         <div class="st-card">
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:8px">
-            <div class="left" style="gap:14px"><iconify-icon icon="lucide:globe" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">代理模式</div><div class="s">量子、暴风等源已关闭 CORS，内置代理自动接管；无需配置</div></div></div>
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:globe" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">代理模式</div><div class="s">内置源均未开启 CORS，取数由内置代理接管；播放地址仍直连</div></div></div>
             <div class="limit-options" id="corsModeOptions">
               <button class="limit-btn" data-mode="auto">内置代理</button>
               <button class="limit-btn" data-mode="off">关闭</button>
             </div>
-            <div class="s" style="font-size:11px;line-height:1.6">内置多个公开 CORS 代理，失败自动切换，无需配置。关闭后只直连（需要目标源本身允许跨域）。</div>
+            <div class="s" style="font-size:11px;line-height:1.6">内置两个公开 CORS 代理，失败自动切换。关闭后只直连——内置源都没有 CORS 头，搜索会无结果，仅在自建同源反代时才需要关。</div>
           </div>
         </div>
       </div>
@@ -930,7 +957,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.4.0 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.0 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1220,19 +1247,27 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 
 <script>
 const DEFAULT_SOURCES = [
-  { key:"lzi",    name:"量子资源", api:"https://cj.lziapi.com/api.php/provide/vod/",    type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"bfzy",   name:"暴风资源", api:"https://bfzyapi.com/api.php/provide/vod/",       type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"ffzy",   name:"非凡资源", api:"https://cj.ffzyapi.com/api.php/provide/vod/",     type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"hnzy",   name:"红牛资源", api:"https://www.hongniuzy2.com/api.php/provide/vod/", type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"jyzy",   name:"金鹰资源", api:"https://jyzyapi.com/api.php/provide/vod/",        type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"huya",   name:"虎牙资源", api:"https://www.huyaapi.com/api.php/provide/vod/",    type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"p2100",  name:"飘零资源", api:"https://p2100.net/api.php/provide/vod/",          type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"wujin",  name:"无尽资源", api:"https://api.wujinapi.com/api.php/provide/vod/",    type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"dytt",   name:"电影天堂", api:"https://caiji.dyttzyapi.com/api.php/provide/vod/", type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"bdzy",   name:"百度云盘", api:"https://api.apibdzy.com/api.php/provide/vod/",     type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"mdy",    name:"魔都资源", api:"https://www.mdzyapi.com/api.php/provide/vod/",     type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"zuid",   name:"最大资源", api:"https://api.zuidapi.com/api.php/provide/vod/",     type:1, enabled:true, noProxy:true, search:true,  cors:false },
-  { key:"zy360",  name:"360资源",  api:"https://www.360zy.com/api.php/provide/vod/",       type:1, enabled:true, noProxy:true, search:true,  cors:false },
+  /* 全部经内置代理实测可搜（2026-11）；源站均未开启 CORS，浏览器无法直连读响应 */
+  { key:"lzi",   name:"量子资源", api:"https://cj.lziapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"bfzy",  name:"暴风资源", api:"https://bfzyapi.com/api.php/provide/vod/",           type:1, enabled:true, search:true, cors:false },
+  { key:"ffzy",  name:"非凡资源", api:"https://api.ffzyapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"hnzy",  name:"红牛资源", api:"https://www.hongniuzy2.com/api.php/provide/vod/",     type:1, enabled:true, search:true, cors:false },
+  { key:"jyzy",  name:"金鹰资源", api:"https://jyzyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
+  { key:"huya",  name:"虎牙资源", api:"https://www.huyaapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"wujin", name:"无尽资源", api:"https://api.wujinapi.com/api.php/provide/vod/",       type:1, enabled:true, search:true, cors:false },
+  { key:"dytt",  name:"电影天堂", api:"https://caiji.dyttzyapi.com/api.php/provide/vod/",    type:1, enabled:true, search:true, cors:false },
+  { key:"bdzy",  name:"百度云盘", api:"https://api.apibdzy.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"mdy",   name:"魔都资源", api:"https://www.mdzyapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"zuid",  name:"最大资源", api:"https://api.zuidapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
+  { key:"zy360", name:"360资源",  api:"https://www.360zy.com/api.php/provide/vod/",          type:1, enabled:true, search:true, cors:false },
+  { key:"hhzy",  name:"火狐资源", api:"https://hhzyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
+  { key:"jszy",  name:"极速资源", api:"https://jszyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
+  { key:"uku",   name:"U酷资源",  api:"https://api.ukuapi88.com/api.php/provide/vod/",       type:1, enabled:true, search:true, cors:false },
+  { key:"gszy",  name:"光速资源", api:"https://api.guangsuapi.com/api.php/provide/vod/",     type:1, enabled:true, search:true, cors:false },
+  { key:"ryzy",  name:"如意资源", api:"https://cj.rycjapi.com/api.php/provide/vod/",         type:1, enabled:true, search:true, cors:false },
+  { key:"sbzy",  name:"速播资源", api:"https://subocaiji.com/api.php/provide/vod/",          type:1, enabled:true, search:true, cors:false },
+  { key:"xlzy",  name:"新浪资源", api:"https://api.xinlangapi.com/xinlangapi.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"yzzy",  name:"优质资源", api:"https://api.yzzy-api.com/inc/apijson.php",            type:1, enabled:true, search:true, cors:false },
 ];
 const THEMES={
   purple:{light:{p:"#6750A4",onP:"#fff",pC:"#EADDFF",onPC:"#21005D",s:"#625B71",onS:"#fff",sC:"#E8DEF8",onSC:"#1D192B",t:"#7D5260",tC:"#FFD8E4"},dark:{p:"#D0BCFF",onP:"#381E72",pC:"#4F378B",onPC:"#EADDFF",s:"#CCC2DC",onS:"#332D41",sC:"#4A4458",onSC:"#E8DEF8",t:"#EFB8C8",tC:"#633B48"}},
@@ -1244,6 +1279,7 @@ const HIST_LIMIT_DEFAULT=50;
 const HOME_PREVIEW_COUNT=10;
 const DEFAULT_PLAYER_SETTINGS={playMode:"loop",rememberPos:true,longPressSpeed:true,autoFs:false,gesture:true,skipStart:0,skipEnd:0,defSpeed:1,defRatio:"auto",adSkip:true,homeRec:true,homeSrc:"all",corsMode:"auto",corsProxy:""};
 let sources=[],favorites=[],history=[],currentPage="home",currentTheme="purple";
+let srcStatus={};
 let histLimit=HIST_LIMIT_DEFAULT;
 let playerSettings={...DEFAULT_PLAYER_SETTINGS};
 let positionCache={};
@@ -1306,6 +1342,67 @@ const CORS_PROXIES=[
   function(u){return "https://corsmirror.com/v1?url="+encodeURIComponent(u);}
 ];
 function proxyUrl(url,idx){return (CORS_PROXIES[idx||0]||CORS_PROXIES[0])(url);}
+/* 并发限流：源多了以后一次全扑上去会被代理/浏览器排队拖垮 */
+function mapLimit(arr,limit,fn){
+  return new Promise(resolve=>{
+    const out=new Array(arr.length);let i=0,active=0,done=0;
+    if(!arr.length){resolve(out);return}
+    const next=()=>{
+      while(active<limit&&i<arr.length){
+        const idx=i++;active++;
+        Promise.resolve().then(()=>fn(arr[idx],idx)).then(v=>{out[idx]=v},()=>{out[idx]=null}).then(()=>{
+          active--;done++;
+          if(done===arr.length)resolve(out);else next();
+        });
+      }
+    };
+    next();
+  });
+}
+/* ---------- 源可用性：直连 → 代理1 → 代理2，全挂即判不可用 ---------- */
+function loadSrcStatus(){try{const v=JSON.parse(safeGet("tvbox_src_status","{}"));srcStatus=v&&typeof v==="object"?v:{};}catch(e){srcStatus={}}}
+function saveSrcStatus(){safeSet("tvbox_src_status",JSON.stringify(srcStatus))}
+async function probeOneSource(src){
+  const url=buildUrl(src,{ac:"videolist",wd:"庆余年",pg:1});
+  try{const d=await fetchJson(url,5000);if(d&&Array.isArray(d.list))return{ch:"direct",n:d.list.length};}catch(e){}
+  for(let i=0;i<CORS_PROXIES.length;i++){
+    try{const d=await fetchJson(proxyUrl(url,i),15000);if(d&&Array.isArray(d.list))return{ch:"proxy"+(i+1),n:d.list.length};}catch(e){}
+  }
+  return{ch:"fail",n:0};
+}
+let srcProbing=false;
+function paintSrcStatus(){
+  document.querySelectorAll("#sourceList .st-item").forEach(item=>{
+    const st=srcStatus[item.dataset.key],dot=item.querySelector(".src-dot"),tx=item.querySelector(".src-st");
+    if(!dot)return;
+    const bad=!!(st&&st.ch==="fail");
+    dot.dataset.st=st?(bad?"bad":"ok"):"unknown";
+    if(tx)tx.textContent=st?(bad?"不可用":(st.ch==="direct"?"直连":"代理")):"未检测";
+    item.dataset.bad=bad?"1":"0";
+  });
+}
+async function probeAllSources(){
+  if(srcProbing)return;
+  srcProbing=true;
+  const btn=document.getElementById("srcProbe"),label=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="检测中…";}
+  const list=sources.slice();
+  let done=0,fail=0;
+  await mapLimit(list,4,async src=>{
+    const r=await probeOneSource(src);
+    srcStatus[src.key]=Object.assign(r,{t:Date.now()});
+    if(r.ch==="fail"){src.enabled=false;fail++}
+    done++;
+    if(btn)btn.textContent=`检测中 ${done}/${list.length}`;
+    paintSrcStatus();
+    return r;
+  });
+  saveSrcStatus();saveSrc();srcProbing=false;
+  if(btn){btn.disabled=false;btn.textContent=label||"检测全部源"}
+  renderSettings();updSrcCount();rebuildFilters();
+  toast(fail?`检测完成：${list.length-fail} 个可用，${fail} 个已自动停用`:`检测完成：${list.length} 个源全部可用`);
+}
+
 async function fetchJson(url,timeoutMs){
   const ctrl=new AbortController(),to=setTimeout(()=>ctrl.abort(),timeoutMs||12000);
   try{
@@ -1319,8 +1416,10 @@ async function fetchJson(url,timeoutMs){
 async function apiFetch(url,src,timeoutMs){
   const mode=playerSettings.corsMode||"auto";
   if(mode==="off")return fetchJson(url,timeoutMs);
-  const knownCors=src&&src.cors===false;
-  if(!knownCors){try{return await fetchJson(url,3500)}catch(e){}}
+  /* 直连只在「检测确认可用」时才试：未检测过的源直接走代理，免得每个请求白等 3.5 秒 */
+  const st=src?srcStatus[src.key]:null;
+  const direct=(src&&src.cors===true)||(st&&st.ch==="direct");
+  if(direct){try{return await fetchJson(url,Math.max(timeoutMs||0,6000))}catch(e){}}
   let err=null;
   for(let i=0;i<CORS_PROXIES.length;i++){
     try{return await fetchJson(proxyUrl(url,i),12000);}
@@ -1456,7 +1555,7 @@ async function loadHomeFeed(force){
   if(!srcs.length)return;
   const grid=document.getElementById("homeRecGrid");
   if(grid&&!homeFeed){grid.innerHTML="";grid.appendChild(skel(6,"lg"));}
-  const results=await Promise.all(srcs.map(s=>apiList(s,1,"","")));
+  const results=await mapLimit(srcs,6,s=>apiList(s,1,"",""));
   const seen={},list=[];
   results.forEach(r=>{if(!r.ok||!r.list)return;r.list.forEach(it=>{const k=it.vod_id+"|"+it._sourceKey;if(!seen[k]){seen[k]=1;list.push(it)}})});
   list.sort((a,b)=>String(b.vod_time||"").localeCompare(String(a.vod_time||"")));
@@ -1550,6 +1649,48 @@ document.getElementById("allFavBack").addEventListener("click",closeAllFav);
 document.getElementById("allFavClear").addEventListener("click",()=>{if(!favorites.length){toast("暂无收藏");return;}if(!confirm("确定清空全部收藏？"))return;favorites=[];saveFav();renderAllFav();renderHome();toast("收藏已清空");});
 document.getElementById("clearHistory").addEventListener("click",()=>{if(!history.length){toast("暂无历史记录");return;}if(!confirm("确定清空全部历史记录？"))return;history=[];saveHist();renderHome();if(isAllHistoryOpen())renderAllHistory();toast("历史记录已清空");});
 document.getElementById("viewAllFav").addEventListener("click",openAllFav);
+/* ==================== 搜索历史 ==================== */
+const SHIST_MAX=20;
+let searchHist=[];
+function loadSearchHist(){
+  try{const v=JSON.parse(safeGet("tvbox_search_hist","[]"));searchHist=Array.isArray(v)?v.filter(x=>typeof x==="string"&&x).slice(0,SHIST_MAX):[];}catch(e){searchHist=[];}
+}
+function saveSearchHist(){safeSet("tvbox_search_hist",JSON.stringify(searchHist))}
+/* 输入过程中的前缀延伸不重复入栈：「庆」→「庆余」→「庆余年」只留最后一条 */
+function pushSearchHist(kw){
+  kw=(kw||"").trim();
+  if(!kw||kw.indexOf("TVC1:")===0)return;
+  const i=searchHist.indexOf(kw);
+  if(i===0)return;
+  if(i>0)searchHist.splice(i,1);
+  else if(searchHist[0]&&kw.indexOf(searchHist[0])===0)searchHist.shift();
+  else if(searchHist[0]&&searchHist[0].indexOf(kw)===0)return;
+  searchHist.unshift(kw);
+  if(searchHist.length>SHIST_MAX)searchHist.length=SHIST_MAX;
+  saveSearchHist();
+}
+function renderSearchHist(){
+  const box=document.getElementById("searchHist"),list=document.getElementById("shList");
+  if(!box||!list)return;
+  if(!searchHist.length){box.style.display="none";list.innerHTML="";return}
+  box.style.display="";
+  list.innerHTML=searchHist.map(k=>`<div class="sh-item" data-kw="${esc(k)}">${iconTag('history',14)}<span class="kw">${esc(k)}</span></div>`).join("");
+  list.querySelectorAll(".sh-item").forEach(el=>el.addEventListener("click",()=>{
+    const kw=el.dataset.kw,input=document.getElementById("searchInput");
+    if(!input||!kw)return;
+    input.value=kw;searchQuery=kw;
+    document.getElementById("searchClear").classList.add("show");
+    hideHist();pushSearchHist(kw);doSearch(true);
+  }));
+}
+function showHist(){const box=document.getElementById("searchHist");if(!box)return;if(!searchHist.length){box.style.display="none";return}renderSearchHist();box.style.display="";}
+function hideHist(){const box=document.getElementById("searchHist");if(box)box.style.display="none";}
+function clearSearchHist(){
+  if(!searchHist.length){toast("暂无搜索历史");return}
+  if(!confirm("确定清空全部搜索历史？"))return;
+  searchHist=[];saveSearchHist();hideHist();toast("搜索历史已清空");
+}
+document.getElementById("shClear").addEventListener("click",clearSearchHist);
 function hideSuggest(){const box=document.getElementById("suggestBox");if(box){box.classList.remove("show");box.innerHTML="";}suggestIndex=-1;suggestItems=[];}
 function renderSuggestLoading(){const box=document.getElementById("suggestBox");if(!box)return;box.innerHTML=`<div class="suggest-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span>正在联想…</span></div>`;box.classList.add("show");}
 function renderSuggest(items){
@@ -1566,9 +1707,16 @@ async function fetchSuggest(){
   let targets=enabledSrc().filter(s=>s.search!==false);   /* 联想只查支持搜索的源，避免被禁搜源拖慢/挤占 */
   if(!targets.length)targets=enabledSrc();
   if(!targets.length){hideSuggest();return}
+  /* 联想是逐字触发的，源太多会把代理压垮：只查前 6 个，并发 3 */
+  targets=targets.slice(0,6);
   renderSuggestLoading();
-  const tasks=targets.map(src=>{const ctrl=new AbortController();suggestAborters.push(ctrl);const to=setTimeout(()=>{try{ctrl.abort()}catch(e){}},2000);return (async()=>{try{const params={ac:"suggest",wd:kw,limit:10};const res=await fetch(buildUrl(src,params),{signal:ctrl.signal,headers:{"User-Agent":"Mozilla/5.0"}});clearTimeout(to);if(!res.ok)return[];const data=await res.json();if(data&&Array.isArray(data.list)){return data.list.map(it=>({name:it.vod_name||it.name||"",src:src.name})).filter(x=>x.name);}return[];}catch(e){clearTimeout(to);return[]}})();});
-  const results=await Promise.all(tasks);
+  const results=await mapLimit(targets,3,async src=>{
+    try{
+      const data=await apiFetch(buildUrl(src,{ac:"suggest",wd:kw,limit:10}),src,6000);
+      if(data&&Array.isArray(data.list))return data.list.map(it=>({name:it.vod_name||it.name||"",src:src.name})).filter(x=>x.name);
+      return[];
+    }catch(e){return[]}
+  });
   const seen=new Set(),merged=[];
   results.forEach(arr=>{arr.forEach(it=>{const k=it.name.toLowerCase();if(!seen.has(k)){seen.add(k);merged.push(it);}});});
   if(!input.value.trim()||input.value.trim()!==kw){return}
@@ -1580,8 +1728,8 @@ function initSearch(){
     searchQuery=e.target.value.trim();clearBtn.classList.toggle("show",searchQuery.length>0);
     if(searchDebounce)clearTimeout(searchDebounce);if(suggestTimer)clearTimeout(suggestTimer);
     if(searchQuery.indexOf("TVC1:")===0){hideSuggest();wtClipboardNotice();return;}
-    if(searchQuery.length>=1){suggestTimer=setTimeout(fetchSuggest,250);searchDebounce=setTimeout(()=>doSearch(true),600);}
-    else{hideSuggest();clearSearch();}
+    if(searchQuery.length>=1){hideHist();suggestTimer=setTimeout(fetchSuggest,250);searchDebounce=setTimeout(()=>doSearch(true),600);}
+    else{hideSuggest();clearSearch();showHist();}
   });
   input.addEventListener("keydown",(e)=>{
     const box=document.getElementById("suggestBox"),isOpen=box&&box.classList.contains("show");
@@ -1591,7 +1739,8 @@ function initSearch(){
     else if(e.key==="Enter"){e.preventDefault();if(suggestIndex>=0&&suggestItems[suggestIndex]){const name=suggestItems[suggestIndex].name;input.value=name;searchQuery=name;hideSuggest();doSearch(true);}else{hideSuggest();doSearch(true);}}
     else if(e.key==="Escape"){hideSuggest();}
   });
-  clearBtn.addEventListener("click",()=>{input.value="";searchQuery="";clearBtn.classList.remove("show");hideSuggest();clearSearch();input.focus();});
+  input.addEventListener("focus",()=>{if(!input.value.trim())showHist();});
+  clearBtn.addEventListener("click",()=>{input.value="";searchQuery="";clearBtn.classList.remove("show");hideSuggest();clearSearch();input.focus();showHist();});
   document.addEventListener("click",(e)=>{const box=document.getElementById("suggestBox");if(!box)return;if(!e.target.closest(".search-field"))hideSuggest();});
   rebuildFilters();
 }
@@ -1609,6 +1758,7 @@ async function doSearch(reset){
   let targets=enabledSrc();if(searchFilter!=="all")targets=targets.filter(s=>s.key===searchFilter);
   if(!targets.length){empty.style.display="flex";empty.querySelector(".t1").textContent="没有启用的数据源";empty.querySelector(".t2").textContent="请先在设置中启用至少一个数据源";return}
   const kw=searchQuery;
+  if(reset)pushSearchHist(kw);
   const fast=targets;
   const pass=it=>searchFilter==="all"||it._sourceKey===searchFilter;
   const keyOf=it=>it.vod_id+"|"+it._sourceKey;
@@ -1621,7 +1771,7 @@ async function doSearch(reset){
   if(reset){
     grid.appendChild(skel(6,"lg"));
     /* 2) 服务端可搜源（即时） */
-    const results=await Promise.all(fast.map(s=>apiList(s,searchPage,kw,"")));
+    const results=await mapLimit(fast,6,s=>apiList(s,searchPage,kw,""));
     clearOnce();
     let first=[];results.forEach(r=>{if(r.ok&&r.list){addItems(r.list);first=first.concat(r.list)}});
     if(first.length>0){toast("正在获取封面...");await batchFetchDetails(first,3);}
@@ -1630,7 +1780,7 @@ async function doSearch(reset){
   }else{
     /* 滚动到底：可搜源翻页；仅列表源从在线列表续抓下一批 10 页（去重） */
     searchPage++;
-    const results=await Promise.all(fast.map(s=>apiList(s,searchPage,kw,"")));
+    const results=await mapLimit(fast,6,s=>apiList(s,searchPage,kw,""));
     let more=false,first=[];
     results.forEach(r=>{if(r.ok&&r.list){const a=addItems(r.list);if(a>0){first=first.concat(r.list);more=true}}});
     if(first.length>0){await batchFetchDetails(first,3);paint();}
@@ -1722,8 +1872,17 @@ function renderSettings(){
   setSw(document.getElementById("swPreload"),typeof preCfg!=="undefined"?preCfg.on:true);
   document.querySelectorAll(".theme-option").forEach(el=>{el.classList.toggle("active",el.dataset.theme===currentTheme);el.onclick=()=>{applyTheme(el.dataset.theme);saveTheme();toast("主题已切换");renderSettings();};});
   const list=document.getElementById("sourceList");list.innerHTML="";
-  sources.forEach((src,idx)=>{const item=document.createElement("div");item.className="st-item";const noProxyTag=src.noProxy?`<span class="tag-inline">免代理</span>`:"";item.innerHTML=`<div class="left" style="flex:1;min-width:0">${iconTag('rss',22)}<div style="flex:1;min-width:0;overflow:hidden"><div class="t" style="display:flex;align-items:center;flex-wrap:wrap">${esc(src.name)}${noProxyTag}</div><div class="s" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(src.api)}</div></div></div><div class="sw ${src.enabled?'on':''}" data-idx="${idx}"><div class="sw-track"></div><div class="sw-thumb"></div></div>`;list.appendChild(item);});
+  sources.forEach((src,idx)=>{
+    const item=document.createElement("div");item.className="st-item";item.dataset.key=src.key;
+    const st=srcStatus[src.key],stText=st?(st.ch==="fail"?"不可用":(st.ch==="direct"?"直连":"代理")):"未检测";
+    item.innerHTML=`<div class="left" style="flex:1;min-width:0">${iconTag('rss',22)}<div style="flex:1;min-width:0;overflow:hidden"><div class="t" style="display:flex;align-items:center;flex-wrap:wrap">${esc(src.name)}<i class="src-dot" data-st="${st?(st.ch==="fail"?"bad":"ok"):"unknown"}"></i><span class="src-st">${stText}</span></div><div class="s" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(src.api)}</div></div></div><div class="sw ${src.enabled?'on':''}" data-idx="${idx}"><div class="sw-track"></div><div class="sw-thumb"></div></div>`;
+    list.appendChild(item);
+  });
   list.querySelectorAll(".sw").forEach(sw=>{sw.addEventListener("click",()=>{const idx=parseInt(sw.dataset.idx);sources[idx].enabled=!sources[idx].enabled;sw.classList.toggle("on",sources[idx].enabled);saveSrc();updSrcCount();rebuildFilters();toast(`${sources[idx].name} 已${sources[idx].enabled?"启用":"禁用"}`)})});
+  const pb=document.getElementById("srcProbe"),pr=document.getElementById("srcProbeReset");
+  if(pb)pb.onclick=probeAllSources;
+  if(pr)pr.onclick=()=>{if(!Object.keys(srcStatus).length){toast("暂无检测记录");return}srcStatus={};saveSrcStatus();renderSettings();toast("检测状态已重置")};
+  paintSrcStatus();
   const corsBox=document.getElementById("corsModeOptions");
   if(corsBox){corsBox.querySelectorAll(".limit-btn").forEach(btn=>{btn.classList.toggle("active",(playerSettings.corsMode||"auto")===btn.dataset.mode);btn.onclick=()=>{playerSettings.corsMode=btn.dataset.mode;savePlayerSettings();renderSettings();toast(btn.dataset.mode==="off"?"已关闭跨域代理":"使用内置代理");};});}
   if(typeof wtRenderSettings==="function")wtRenderSettings();
@@ -3312,7 +3471,7 @@ function switchPage(page){
   document.getElementById("page"+page.charAt(0).toUpperCase()+page.slice(1)).classList.add("active");
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.page===page));
   if(page==="settings")renderSettings();
-  if(page==="search")rebuildFilters();
+  if(page==="search"){rebuildFilters();if(!document.getElementById("searchInput").value.trim())showHist();}
   if(page==="home")renderHome();
   document.getElementById("contentArea").scrollTop=0;
 }
@@ -4447,7 +4606,7 @@ function bkInit(){
   keys.forEach(function(id){const el=document.getElementById(id);if(el)el.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();bkSubmitKey();}});});
 }
 
-loadStorage();applyTheme(currentTheme);initSearch();initMiniDrag();renderHome();updSrcCount();setupCast();wtInit();bkInit();adSkipInit();
+loadStorage();loadSearchHist();loadSrcStatus();applyTheme(currentTheme);initSearch();initMiniDrag();renderHome();updSrcCount();setupCast();wtInit();bkInit();adSkipInit();
 if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme(currentTheme);});}
 </script>
 <div class="ad-undo" id="adUndo"><span id="adUndoText">已跳过广告</span><button type="button" id="adUndoBtn">取消</button></div>
