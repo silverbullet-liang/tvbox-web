@@ -295,6 +295,11 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .asr-btn{flex:1;border:none;border-radius:12px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;background:var(--sf-v);color:var(--on-sf);transition:transform .12s}
 .asr-btn.primary{background:var(--p);color:var(--on-p)}
 .asr-btn:active{transform:scale(.97)}
+.adm-badge{display:inline-block;font-size:10px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--t);color:var(--on-s);letter-spacing:.04em;vertical-align:middle}
+.adm-prob{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.adm-prob span{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--sf-v);color:var(--on-sf-v);font-variant-numeric:tabular-nums}
+.adm-prob span.hit{background:var(--p);color:var(--on-p)}
+
 .video-wrap.ratio-auto{aspect-ratio:16/9}
 .video-wrap.ratio-auto video{object-fit:contain}
 .video-wrap.ratio-16-9{aspect-ratio:16/9}
@@ -895,6 +900,24 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           </div>
         </div>
       </div>
+      <div class="st-section" id="adModelSection">
+        <div class="st-label">广告识别</div>
+        <div class="st-card">
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="left"><iconify-icon icon="lucide:scan-eye"></iconify-icon><div><div class="t">检测程序</div><div class="s" id="adEngineHint">规则版：按画面色彩占比判断</div></div></div>
+            <div class="limit-options" id="adEngineOptions"></div>
+          </div>
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:12px" id="adModelWrap">
+            <div class="left"><iconify-icon icon="lucide:brain-circuit"></iconify-icon><div><div class="t">识别模型 <span class="adm-badge">beta</span></div><div class="s" id="adModelHint">正在读取模型列表…</div></div></div>
+            <div class="asr-list" id="adModelList"></div>
+          </div>
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:4px">
+            <div class="slider-row"><div class="slider-head"><div class="t">判定阈值</div><div class="v" id="admThrV">85%</div></div>
+              <input class="md-slider" type="range" id="admThr" min="50" max="99" step="1" value="85"></div>
+            <div class="s">概率高于该值才提示。模型只输出概率，是否跳过仍由程序决定。</div>
+          </div>
+        </div>
+      </div>
       <div class="st-section" id="preloadSection">
         <div class="st-label">首页</div>
         <div class="st-card">
@@ -964,7 +987,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.2 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.6.0 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1857,7 +1880,7 @@ function renderHomeSrcOptions(){
   });
 }
 function renderSettings(){
-  bindSubSettings();renderSubSettings();renderAsr();renderHomeSrcOptions();
+  bindSubSettings();renderSubSettings();renderAsr();renderHomeSrcOptions();try{admInit();}catch(e){}
   const hint=document.getElementById("histLimitHint");if(hint)hint.textContent=histLimit>0?`当前保留 ${histLimit} 条`:`当前不限条数`;
   const limitBox=document.getElementById("histLimitOptions");
   if(limitBox){limitBox.querySelectorAll(".limit-btn").forEach(btn=>{const val=parseInt(btn.dataset.limit,10);btn.classList.toggle("active",val===histLimit);btn.onclick=()=>{histLimit=val;saveHistLimit();if(histLimit>0&&history.length>histLimit){history.length=histLimit;saveHist();}renderSettings();renderHome();if(isAllHistoryOpen())renderAllHistory();toast(histLimit>0?`历史保留 ${histLimit} 条`:"历史条数不限");};});}
@@ -2408,6 +2431,7 @@ function adVisionLocal(d,w,h){
   return {btn:btn,col:col};
 }
 function adSample(){
+  if(typeof admCfg!=="undefined"&&admCfg.engine==="model")return;
   if(!adS.on||adS.busy||videoEl.paused||videoEl.readyState<2)return;
   var now=performance.now();
   if(now<adS.warm||now<adS.cool)return;
@@ -2489,7 +2513,412 @@ function adSkipInit(){
     toast("已取消，本集不再自动跳过");
   });}
   if(playerSettings.adSkip)adSkipStart();
-  window.adSkip={start:adSkipStart,stop:adSkipStop,state:adS};
+  /* ================= 广告识别模型（beta） ================= */
+const AD_MODEL_CFG="tvbox.adm.v1", AD_MODEL_STATE="tvbox.adm.state.v1";
+const AD_MODEL_BASES=[
+  ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
+  ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"],
+  ["ghproxy","https://ghproxy.net/https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
+];
+const AD_MODEL_FALLBACK={models:[{
+  id:"silver-adskip-1-mini-beta",name:"广告识别 mini",beta:true,version:"1.0.0-beta.1",params:48963,threshold:0.85,
+  files:[{variant:"fp32",file:"model.fp32.onnx",size:199796},
+         {variant:"int8",file:"model.int8.onnx",size:172418},
+         {variant:"q8",file:"model.q8.onnx",size:84750}]}]};
+const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量"};
+let admCfg={engine:"rule",model:"silver-adskip-1-mini-beta",variant:"",thr:0.85};
+let admIndex=null, admListEl=null, admState={}, admSession=null, admOrt=null,
+    admBusy=false, admLast=null, admTimer=null, admMelM=null;
+
+function admLoadCfg(){
+  try{admCfg=Object.assign({engine:"rule",model:"silver-adskip-1-mini-beta",variant:"",thr:0.85},JSON.parse(safeGet(AD_MODEL_CFG,"{}"))||{});}catch(e){}
+  if(admCfg.engine!=="model")admCfg.engine="rule";
+  var t=Number(admCfg.thr); admCfg.thr=isFinite(t)?Math.max(.5,Math.min(.99,t)):.85;
+  try{admState=JSON.parse(safeGet(AD_MODEL_STATE,"{}"))||{};}catch(e){admState={};}
+}
+function admSaveCfg(){safeSet(AD_MODEL_CFG,JSON.stringify(admCfg));}
+function admSaveState(){safeSet(AD_MODEL_STATE,JSON.stringify(admState));}
+
+/* ---- 设备评分 → 推荐量化档 ---- */
+function admDeviceScore(){
+  var cores=navigator.hardwareConcurrency||4;
+  var mem=navigator.deviceMemory||4;
+  var mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"");
+  var s=(cores>=8?2:cores>=4?1:0)+(mem>=8?2:mem>=4?1:0)+(mobile?0:1);
+  return {score:s,cores:cores,mem:mem,mobile:mobile};
+}
+function admRecommend(){
+  var d=admDeviceScore();
+  if(d.score>=4)return {variant:"fp32",why:"设备性能充足（"+d.cores+" 核 / "+d.mem+" GB），用原始版，精度最高"};
+  if(d.score>=2)return {variant:"int8",why:"性能一般（"+d.cores+" 核 / "+d.mem+" GB），用 int8 动态量化，体积减半"};
+  return {variant:"q8",why:"低配设备（"+d.cores+" 核 / "+d.mem+" GB），用 int8 全量化，加载最快"};
+}
+
+/* ---- 拉索引 ---- */
+async function admFetchIndex(){
+  for(var i=0;i<AD_MODEL_BASES.length;i++){
+    try{
+      var r=await fetch(AD_MODEL_BASES[i][1]+"models/index.json",{cache:"no-cache"});
+      if(r.ok){var j=await r.json(); if(j&&j.models&&j.models.length){admIndex=j;admIndex._base=AD_MODEL_BASES[i][1];return j;}}
+    }catch(e){}
+  }
+  admIndex=AD_MODEL_FALLBACK; admIndex._base=AD_MODEL_BASES[0][1];
+  return admIndex;
+}
+
+/* ---- 渲染 ---- */
+function admFmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB";}
+function admModelEntry(id){
+  var ms=(admIndex&&admIndex.models)||[];
+  return ms.filter(function(m){return m.id===id;})[0]||null;
+}
+function admRender(){
+  var el=document.getElementById("adModelList"); if(!el)return;
+  admListEl=el;
+  var eng=document.getElementById("adEngineOptions");
+  if(eng){
+    eng.innerHTML="";
+    [["rule","规则版","按画面色彩与音频能量判断，零下载"],["model","模型版","本地跑 onnx 模型，需下载一次"]].forEach(function(o){
+      var b=document.createElement("button"); b.type="button";
+      b.className="limit-btn"+(admCfg.engine===o[0]?" active":"");
+      b.textContent=o[1]+" · "+o[2];
+      b.onclick=function(){admCfg.engine=o[0];admSaveCfg();admRender();admApplyEngine();};
+      eng.appendChild(b);
+    });
+  }
+  var hint=document.getElementById("adEngineHint");
+  if(hint)hint.textContent=admCfg.engine==="model"?"模型版：本地推理，画面/音频/图片分别给出概率":"规则版：按画面色彩占比判断，不下载任何文件";
+  var wrap=document.getElementById("adModelWrap");
+  if(wrap)wrap.style.display=admCfg.engine==="model"?"":"none";
+  if(admCfg.engine!=="model")return;
+
+  var mh=document.getElementById("adModelHint");
+  if(mh){
+    var rec=admRecommend();
+    if(!admCfg.variant)admCfg.variant=rec.variant;
+    mh.textContent="智能推荐："+AD_VARIANT_LABEL[rec.variant]+"　"+rec.why;
+  }
+  el.innerHTML="";
+  var ms=(admIndex&&admIndex.models)||[];
+  if(!ms.length){el.innerHTML='<div class="ads">读取模型列表失败，稍后重试</div>';return;}
+  ms.forEach(function(m){
+    var card=document.createElement("div");
+    var sel=admCfg.model===m.id;
+    card.className="asr-card"+(sel?" on":"");
+    var st=admState[m.id]||{};
+    var files=m.files||[];
+    var cur=sel&&admCfg.variant?files.filter(function(f){return f.variant===admCfg.variant;})[0]:null;
+    var html='<div class="ah"><div class="an">'+m.name+'</div><div class="asz">'+(m.params?Math.round(m.params/1000)+"k 参数":"")+'</div></div>';
+    if(m.beta)html+='<div class="asr-badge">beta</div>';
+    html+='<div class="asr-pros">';
+    files.forEach(function(f){
+      var on=admCfg.variant===f.variant;
+      html+='<span data-var="'+f.variant+'" style="cursor:pointer;'+(on?'outline:1.5px solid currentColor':'')+'">'+AD_VARIANT_LABEL[f.variant]+' '+admFmtSize(f.size)+'</span>';
+    });
+    html+='</div>';
+    var ready=st.ready===1&&st.variant===admCfg.variant;
+    html+='<div class="asr-state"><div class="asr-bar"><i style="width:'+(ready?100:(st.pct||0))+'%"></i></div><div class="asr-pct">'+(ready?"已就绪":(st.pct?st.pct+"%":admFmtSize((cur&&cur.size)||0)))+'</div></div>';
+    html+='<div class="asr-actions"><button class="asr-btn primary" data-act="adm-dl">'+(ready?"重新下载":"下载并启用")+'</button></div>';
+    if(m.limits&&m.limits.length)html+='<div class="ads">'+m.limits[0]+'</div>';
+    card.innerHTML=html;
+    card.addEventListener("click",function(ev){
+      var t=ev.target.closest("[data-var]");
+      if(t){admCfg.model=m.id;admCfg.variant=t.getAttribute("data-var");admLoadSessionReset();admSaveCfg();admRender();return;}
+      var b=ev.target.closest("[data-act]");
+      if(b&&b.getAttribute("data-act")==="adm-dl"){admDownload(m.id,admCfg.variant||admRecommend().variant);}
+    });
+    el.appendChild(card);
+  });
+}
+
+/* ---- 下载 + 校验 + 缓存 ---- */
+function admLoadSessionReset(){admSession=null;}
+async function admDownload(id,variant){
+  if(!admIndex)await admFetchIndex();
+  var m=admModelEntry(id); if(!m){toast("模型列表未就绪，请稍后重试");return;}
+  admCfg.model=id; admCfg.variant=variant; admSaveCfg();
+  var f=(m.files||[]).filter(function(x){return x.variant===variant;})[0]; if(!f)return;
+  var st=admState[id]||{}; st.pct=0; st.variant=variant; st.ready=0; admState[id]=st; admSaveState(); admRender();
+  var url=null, buf=null;
+  for(var i=0;i<AD_MODEL_BASES.length;i++){
+    var base=AD_MODEL_BASES[i][1];
+    var u=base+"models/"+id+"/"+f.file;
+    try{
+      var r=await fetch(u); if(!r.ok)continue;
+      var total=Number(r.headers.get("content-length"))||f.size||0;
+      if(r.body&&r.body.getReader){
+        var reader=r.body.getReader(), chunks=[], got=0;
+        while(true){var s=await reader.read(); if(s.done)break; chunks.push(s.value); got+=s.value.length;
+          st.pct=total?Math.min(99,Math.round(got/total*100)):Math.min(99,got/ (f.size||1)*100|0); admState[id]=st; admRender();}
+        buf=new Uint8Array(got); var off=0; chunks.forEach(function(c){buf.set(c,off);off+=c.length;});
+      }else{ buf=new Uint8Array(await r.arrayBuffer()); }
+      url=u; break;
+    }catch(e){}
+  }
+  if(!buf){toast("下载失败，请检查网络");st.pct=0;admState[id]=st;admSaveState();admRender();return;}
+  if(f.sha256){
+    var h=await crypto.subtle.digest("SHA-256",buf.buffer);
+    var hex=Array.from(new Uint8Array(h)).map(function(b){return b.toString(16).padStart(2,"0");}).join("");
+    if(hex!==f.sha256){st.pct=0;admState[id]=st;admSaveState();admRender();toast("校验失败：文件不完整，请重试");return;}
+  }
+  try{ var c=await caches.open("tvbox-adm"); await c.put(location.origin+"/__adm_model/"+id+"/"+variant,new Response(new Blob([buf]))); }catch(e){}
+  st.pct=100; st.ready=1; st.size=buf.length; admState[id]=st; admSaveState(); admRender();
+  toast("模型已就绪");
+  admLoadSession(id,variant).catch(function(){});
+}
+
+async function admGetModelBuf(id,variant){
+  try{ var c=await caches.open("tvbox-adm"); var r=await c.match(location.origin+"/__adm_model/"+id+"/"+variant); if(r)return new Uint8Array(await r.arrayBuffer()); }catch(e){}
+  return null;
+}
+
+/* ---- ort 加载与推理 ---- */
+async function admOrtInit(){
+  if(admOrt)return admOrt;
+  if(!window.ort){
+    await new Promise(function(res,rej){
+      var el=document.createElement("script");
+      el.src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/dist/ort.min.js";
+      el.onload=res; el.onerror=function(){rej(new Error("ort 加载失败"));};
+      setTimeout(function(){rej(new Error("ort 加载超时"));},25000);
+      document.head.appendChild(el);
+    });
+  }
+  var ort=window.ort;
+  if(!ort||!ort.env)throw new Error("ort 未就绪");
+  ort.env.wasm.numThreads=1;
+  ort.env.wasm.simd=false;
+  if(!ort.env.wasm.wasmPaths)ort.env.wasm.wasmPaths="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.1/dist/";
+  admOrt=ort;
+  return ort;
+}
+async function admLoadSession(id,variant){
+  id=id||admCfg.model; variant=variant||admCfg.variant;
+  var buf=await admGetModelBuf(id,variant);
+  if(!buf)throw new Error("模型未下载");
+  var ort=await admOrtInit();
+  admSession=await ort.InferenceSession.create(buf,{executionProviders:["wasm"]});
+  return admSession;
+}
+
+/* ---- 预处理 ---- */
+function admMelMatrix(){
+  if(admMelM)return admMelM;
+  var NFFT=512,NMEL=64,SR=16000;
+  function h2m(f){return 2595*Math.log10(1+f/700);}
+  function m2h(m){return 700*(Math.pow(10,m/2595)-1);}
+  var lo=h2m(50),hi=h2m(7600),pts=[],i,k;
+  for(i=0;i<NMEL+2;i++)pts.push(m2h(lo+(hi-lo)*i/(NMEL+1)));
+  var bins=pts.map(function(p){return Math.floor((NFFT+1)*p/SR);});
+  var M=[];
+  for(i=0;i<NMEL;i++){
+    var row=new Float32Array(NFFT/2+1),l=bins[i],c=bins[i+1],r=bins[i+2];
+    for(k=l;k<c;k++)if(c>l)row[k]=(k-l)/(c-l);
+    for(k=c;k<r;k++)if(r>c)row[k]=(r-k)/(r-c);
+    M.push(row);
+  }
+  admMelM=M; return M;
+}
+function admFFT(re,im){
+  var n=re.length,i,j,k;
+  for(i=1,j=0;i<n;i++){var bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){var t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
+  for(var len=2;len<=n;len<<=1){
+    var ang=-2*Math.PI/len,wr=Math.cos(ang),wi=Math.sin(ang);
+    for(i=0;i<n;i+=len){
+      var cr=1,ci=0;
+      for(k=0;k<len/2;k++){
+        var ur=re[i+k],ui=im[i+k];
+        var vr=re[i+k+len/2]*cr-im[i+k+len/2]*ci, vi=re[i+k+len/2]*ci+im[i+k+len/2]*cr;
+        re[i+k]=ur+vr;im[i+k]=ui+vi;
+        re[i+k+len/2]=ur-vr;im[i+k+len/2]=ui-vi;
+        var ncr=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=ncr;
+      }
+    }
+  }
+}
+function admMelFromPcm(pcm){
+  var NFFT=512,HOP=256,TFR=32,SR=16000;
+  var x=pcm; if(x.length<19200){var y=new Float32Array(19200);y.set(x);x=y;}else x=x.subarray(0,19200);
+  var win=new Float32Array(NFFT);
+  for(var i=0;i<NFFT;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/(NFFT-1));
+  var M=admMelMatrix(),out=new Float32Array(64*TFR),nf=1+Math.floor((x.length-NFFT)/HOP);
+  for(var f=0;f<TFR;f++){
+    var re=new Float32Array(NFFT),im=new Float32Array(NFFT);
+    var st=f*HOP, last=st+NFFT>x.length;
+    for(var i2=0;i2<NFFT;i2++)re[i2]=(x[st+i2]||0)*win[i2];
+    admFFT(re,im);
+    var p=new Float32Array(NFFT/2+1);
+    for(var k=0;k<=NFFT/2;k++)p[k]=re[k]*re[k]+im[k]*im[k];
+    for(var m=0;m<64;m++){
+      var s=0,row=M[m];
+      for(var k2=0;k2<=NFFT/2;k2++)s+=p[k2]*row[k2];
+      var v=Math.log(s+1e-6); v=(v+11)/11; v=v<0?0:v>1?1:v;
+      out[m*TFR+f]=v;
+    }
+    if(last&&f>TFR-1)break;
+  }
+  return out;
+}
+function admResample(pcm,sr){
+  if(Math.abs(sr-16000)<200)return pcm;
+  var n=Math.floor(pcm.length*16000/sr),out=new Float32Array(n);
+  for(var i=0;i<n;i++){
+    var t=i*sr/16000, i0=Math.floor(t), i1=Math.min(pcm.length-1,i0+1), w=t-i0;
+    out[i]=pcm[i0]*(1-w)+pcm[i1]*w;
+  }
+  return out;
+}
+function admFrameTensor(video,canvas){
+  var w=32,h=32,g=canvas.getContext("2d",{willReadFrequently:true});
+  g.drawImage(video,0,0,w,h);
+  var d=g.getImageData(0,0,w,h).data, t=new Float32Array(3*w*h);
+  for(var i=0;i<w*h;i++){
+    t[i]=d[i*4]/255; t[w*h+i]=d[i*4+1]/255; t[2*w*h+i]=d[i*4+2]/255;
+  }
+  return t;
+}
+async function admVideoTensor(video){
+  // 优先用独立隐藏 video 抽帧，不干扰主播放器
+  var src="", i, out=new Float32Array(8*3*32*32);
+  try{ src=video.currentSrc||video.src||""; }catch(e){}
+  var cv=document.createElement("canvas"); cv.width=32; cv.height=32;
+  var v=null;
+  if(src&&src.indexOf("blob:")!==0){
+    v=document.createElement("video");
+    v.muted=true; v.playsInline=true; v.preload="auto"; v.crossOrigin="anonymous";
+    v.src=src;
+    await new Promise(function(res){ var d=false; function f(){if(d)return;d=true;res();}
+      v.addEventListener("loadeddata",f,{once:true}); v.addEventListener("error",f,{once:true});
+      try{v.load();}catch(e){} setTimeout(f,1800); });
+  }
+  var base=(video.currentTime||0), dur=video.duration||0;
+  if(v&&v.readyState>=2){
+    try{
+      for(i=0;i<8;i++){
+        var t=base+i*0.15;
+        if(dur&&t>dur-0.05)t=Math.max(0,dur-0.06);
+        await new Promise(function(res){
+          var d=false; function f(){if(d)return;d=true;v.removeEventListener("seeked",f);res();}
+          v.addEventListener("seeked",f,{once:true});
+          try{v.currentTime=t;}catch(e){f();}
+          setTimeout(f,300);
+        });
+        out.set(admFrameTensor(v,cv),i*3*32*32);
+      }
+      try{v.src="";v.load();}catch(e){}
+      return out;
+    }catch(e){ try{v.src="";}catch(e2){} }
+  }
+  // 退路：主视频当前帧复制 8 帧
+  if(video.readyState<2)return null;
+  var one=admFrameTensor(video,cv);
+  for(i=0;i<8;i++)out.set(one,i*3*32*32);
+  return out;
+}
+async function admAudioTensor(video){
+  try{
+    if(!video.captureStream||!window.MediaRecorder)return null;
+    var stream=video.captureStream();
+    var tracks=stream.getAudioTracks();
+    if(!tracks.length)return null;
+    var astr=new MediaStream([tracks[0]]);
+    var rec=new MediaRecorder(astr,{mimeType:"audio/webm"});
+    var chunks=[]; rec.ondataavailable=function(e){if(e.data.size)chunks.push(e.data);};
+    rec.start();
+    await new Promise(function(r){setTimeout(r,1300);});
+    await new Promise(function(r){rec.onstop=r;rec.stop();});
+    tracks.forEach(function(t){try{t.stop();}catch(e){}});
+    var buf=await new Blob(chunks).arrayBuffer();
+    var ac=new (window.AudioContext||window.webkitAudioContext)();
+    var ab=await ac.decodeAudioData(buf);
+    var pcm=ab.getChannelData(0);
+    if(ab.sampleRate!==16000){
+      var off=ac.createOfflineAudioContext?null:null;
+      pcm=admResample(pcm,ab.sampleRate);
+    }else pcm=Float32Array.from(pcm);
+    try{ac.close();}catch(e){}
+    return pcm;
+  }catch(e){return null;}
+}
+
+async function admPredict(srcVideo){
+  var video=srcVideo||videoEl;
+  if(!admSession||!video)return null;
+  var ort=admOrt;
+  var vt=await admVideoTensor(video);
+  if(!vt)return null;
+  var it=new Float32Array(3*32*32); it.set(vt.subarray(0,3*32*32));   // 首帧当图片
+  var at=await admAudioTensor(video);
+  var aud=at?admMelFromPcm(at):new Float32Array(64*32);
+  var one=new ort.Tensor("float32",new Float32Array([1]),[1,1]);
+  var zero=new ort.Tensor("float32",new Float32Array([0]),[1,1]);
+  var feeds={
+    img:new ort.Tensor("float32",it,[1,3,32,32]),
+    vid:new ort.Tensor("float32",vt,[8,3,32,32]),
+    aud:new ort.Tensor("float32",aud,[1,1,64,32]),
+    mask_img:one, mask_vid:one, mask_aud:at?one:zero
+  };
+  var o=await admSession.run(feeds);
+  return {p_img:o.p_img.data[0],p_vid:o.p_vid.data[0],p_aud:o.p_aud.data[0],aud:!!at};
+}
+
+async function admTick(){
+  if(admCfg.engine!=="model"||!admSession||admBusy||!videoEl||videoEl.paused||videoEl.readyState<2)return;
+  admBusy=true;
+  try{
+    var r=await admPredict();
+    if(r){
+      admLast=r;
+      var p=Math.max(r.p_vid,r.p_img,r.aud?r.p_aud:0);
+      if(p>=admCfg.thr)adSkipNow();
+    }
+  }catch(e){}
+  admBusy=false;
+}
+
+function admApplyEngine(){
+  if(admTimer){clearInterval(admTimer);admTimer=null;}
+  if(admCfg.engine==="model"){
+    var id=admCfg.model,v=admCfg.variant;
+    if(!v){v=admRecommend().variant;admCfg.variant=v;admSaveCfg();}
+    admLoadSession(id,v).then(function(){
+      admTimer=setInterval(admTick,2500);
+      toast("模型版已启用");
+    }).catch(function(){toast("模型未下载，请先在设置里下载");});
+  }else{
+    admSession=null;
+    toast("已切回规则版");
+  }
+}
+
+async function admInit(){
+  if(admInit._done){admRender();return;}
+  admInit._done=true;
+  admLoadCfg();
+  admListEl=document.getElementById("adModelList");
+  if(!admListEl)return;
+  admRender();
+  admFetchIndex().then(function(){admRender();});
+  var sl=document.getElementById("admThr");
+  if(sl){
+    sl.value=String(Math.round(admCfg.thr*100));
+    var lab=document.getElementById("admThrV"); if(lab)lab.textContent=Math.round(admCfg.thr*100)+"%";
+    sl.addEventListener("input",function(){admCfg.thr=Number(sl.value)/100;admSaveCfg();if(lab)lab.textContent=sl.value+"%";});
+  }
+  // 已下载过就直接挂上
+  var st=admState[admCfg.model];
+  if(admCfg.engine==="model"&&st&&st.ready===1&&st.variant===admCfg.variant){
+    admLoadSession().then(function(){admTimer=setInterval(admTick,2500);}).catch(function(){});
+  }
+}
+window.admPredict=admPredict; window.admTick=admTick; window.admInit=admInit; window.admApplyEngine=admApplyEngine;
+window.admDownload=admDownload; window.admFetchIndex=admFetchIndex; window.admModelEntry=admModelEntry; window.admLoadSession=admLoadSession; window.admRender=admRender;
+window.admDownloadModel=admDownload; window.admGetState=function(){return admState;};
+window.admGetCfg=function(){return admCfg;}; window.admSetCfg=function(k,v){admCfg[k]=v;admSaveCfg();};
+
+
+
+window.adSkip={start:adSkipStart,stop:adSkipStop,state:adS};
 }
 
 function handleEpisodeEnd(){
