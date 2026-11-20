@@ -677,6 +677,11 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
             <div class="left" style="gap:14px"><iconify-icon icon="lucide:bell-dot" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">一起看红点提示</div><div class="s">显示未读消息数量</div></div></div>
             <div class="sw" id="swWtBadge"><div class="sw-track"></div><div class="sw-thumb"></div></div>
           </div>
+          <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:server" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">聊天服务器</div><div class="s">公共 MQTT 节点；当前节点连不上会自动换下一个</div></div></div>
+            <div class="limit-options" id="wtBrokerOptions"></div>
+            <div class="s" style="font-size:11px;line-height:1.6" id="wtBrokerNow"></div>
+          </div>
           <div class="st-item" style="border-bottom:none">
             <div class="left" style="gap:14px"><iconify-icon icon="lucide:clipboard-paste" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">从剪贴板打开一起看</div><div class="s">读取已复制的分享内容并加入</div></div></div>
             <button class="limit-btn" id="wtClipboardJoin">打开</button>
@@ -957,7 +962,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.0 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.1 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -3481,8 +3486,22 @@ const contentArea=document.getElementById("contentArea");
 contentArea.addEventListener("scroll",()=>{if(currentPage==="search"&&contentArea.scrollTop+contentArea.clientHeight>=contentArea.scrollHeight-300&&!searchLoading&&searchHasMore&&searchQuery){doSearch(false)}});
 /* ==================== 一起看（Watch Together） ==================== */
 /* 复用现有播放器、全屏布局、设置、搜索、IndexedDB 与安全存储工具 */
+/* 公共 MQTT broker 列表：均实测可完成 WebSocket 握手；连接失败会自动换下一条 */
+const MQTT_BROKERS=[
+  {key:"emqx-cn",name:"EMQX 中国节点",url:"wss://broker-cn.emqx.io:8084/mqtt"},
+  {key:"hivemq", name:"HiveMQ",        url:"wss://broker.hivemq.com:8884/mqtt"},
+  {key:"hivemq2",name:"HiveMQ 备线",    url:"wss://broker.hivemq.com:8000/mqtt"},
+  {key:"emqx",   name:"EMQX 官方",      url:"wss://broker.emqx.io:8084/mqtt"}
+];
+const WT_LS_BROKER="tvbox_wt_broker";
+function wtBrokerKey(){return safeGet(WT_LS_BROKER,MQTT_BROKERS[0].key);}
+function wtBrokerOrder(){
+  const k=wtBrokerKey(),i=MQTT_BROKERS.findIndex(b=>b.key===k);
+  if(i<=0)return MQTT_BROKERS.slice();
+  return MQTT_BROKERS.slice(i).concat(MQTT_BROKERS.slice(0,i));
+}
 const MQTT_CONFIG={
-  url:"wss://broker.emqx.io:8084/mqtt",
+  brokers:MQTT_BROKERS,
   username:"",
   password:"",
   clientIdPrefix:"tvc_",
@@ -3497,6 +3516,7 @@ const WT_MSG_MAX=200,WT_READ_MAX=1000,WT_TEXT_MAX=500,WT_SYNC_MAX=200,WT_MSG_BYT
 const DEFAULT_WT_SETTINGS={enabled:true,background:true,badge:true};
 
 let wtSettings={...DEFAULT_WT_SETTINGS};
+let wtConnBroker="";
 let wtProfile={nick:"",avatarType:"identicon",avatarSeed:"",avatarData:""};
 let wtWorker=null,wtWorkerReady=false,wtConnected=false,wtConnState="idle";
 let wtRoom=null,wtPanelOpen=false,wtOnline={},wtLastPresence=0,wtPresenceTimer=null;
@@ -3591,23 +3611,27 @@ function wtValidAvatarData(s){return typeof s==="string"&&s.indexOf("data:image/
 function wtWorkerSource(){
   return [
 '"use strict";',
-'var lib=null,client=null,cfg=null,subs={},failAt=0;',
-'function send(m){self.postMessage(m);}',
-'function status(s){var t=Date.now();if(s==="connecting"&&t-failAt<2000)return;if(s==="failed")failAt=t;send({type:"status",state:s});}',
+'var lib=null,client=null,cfg=null,subs={},failAt=0,cur=0,attempts=0;',
+'function brokers(){return (cfg&&cfg.brokers&&cfg.brokers.length)?cfg.brokers:[];}',
+'function status(s,who){var t=Date.now();if(s==="connecting"&&t-failAt<2000&&!who)return;if(s==="failed")failAt=t;send({type:"status",state:s,broker:who||""});}',
 'function loadLib(){if(lib)return true;var urls=[cfg&&cfg.vendorUrl,cfg&&cfg.vendorCdn];for(var i=0;i<urls.length;i++){if(!urls[i])continue;try{importScripts(urls[i]);}catch(e){}var m=self.TVBoxCenter&&self.TVBoxCenter.mqtt;if(m){lib=m;send({type:"vendor-ready"});return true;}}send({type:"error",code:"vendor",message:"聊天服务不可用"});status("failed");return false;}',
+'function nextBroker(){var bs=brokers();if(!bs.length){status("failed");return}cur=(cur+1)%bs.length;attempts++;if(attempts>bs.length*2){status("failed");return}setTimeout(function(){connect();},500);}',
 'function connect(){',
 '  if(!cfg)return;',
 '  if(!loadLib())return;',
 '  if(client){try{client.end(true);}catch(e){}client=null;}',
-'  status("connecting");',
+'  var bs=brokers();if(!bs.length){status("failed");return;}',
+'  var b=bs[cur%bs.length];',
+'  status("connecting",b.name);',
 '  try{',
-'    client=lib.connect(cfg.url,{clientId:cfg.clientIdPrefix+(cfg.clientSeed||Math.random().toString(16).slice(2,10)),username:cfg.username||undefined,password:cfg.password||undefined,clean:true,connectTimeout:8000,reconnectPeriod:3000,keepalive:30,protocolVersion:4});',
-'  }catch(e){status("failed");send({type:"error",message:String(e&&e.message||e)});return;}',
-'  client.on("connect",function(){status("connected");Object.keys(subs).forEach(function(t){try{client.subscribe(t,{qos:0});}catch(e){}});});',
-'  client.on("reconnect",function(){status("connecting");});',
-'  client.on("offline",function(){status("connecting");});',
-'  client.on("close",function(){status("connecting");});',
-'  client.on("error",function(e){status("failed");send({type:"error",message:String(e&&e.message||e)});});',
+'    client=lib.connect(b.url,{clientId:cfg.clientIdPrefix+(cfg.clientSeed||Math.random().toString(16).slice(2,10)),username:cfg.username||undefined,password:cfg.password||undefined,clean:true,connectTimeout:8000,reconnectPeriod:0,keepalive:30,protocolVersion:4});',
+'  }catch(e){nextBroker();send({type:"error",message:String(e&&e.message||e)});return;}',
+'  var settled=false;',
+'  client.on("connect",function(){settled=true;attempts=0;status("connected",b.name);Object.keys(subs).forEach(function(t){try{client.subscribe(t,{qos:0});}catch(e){}});});',
+'  client.on("reconnect",function(){status("connecting",b.name);});',
+'  client.on("offline",function(){status("connecting",b.name);});',
+'  client.on("close",function(){if(settled){status("connecting",b.name);}else{nextBroker();}});',
+'  client.on("error",function(e){if(!settled){nextBroker();}else{send({type:"error",message:String(e&&e.message||e)});}});',
 '  client.on("message",function(topic,payload){',
 '    var s;try{s=payload.toString("utf8");}catch(e){return;}',
 '    if(!s||s.length>16384)return;',
@@ -3618,7 +3642,7 @@ function wtWorkerSource(){
 'function publish(topic,obj){if(!client||!client.connected)return false;var s;try{s=JSON.stringify(obj);}catch(e){return false;}if(s.length>16384)return false;try{client.publish(topic,s,{qos:0});return true;}catch(e){return false;}}',
 'self.onmessage=function(ev){',
 '  var d=ev.data||{};',
-'  if(d.type==="init"){cfg=d.config||{};return;}',
+'  if(d.type==="init"){cfg=d.config||{};cur=0;attempts=0;return;}',
 '  if(d.type==="connect"){connect();return;}',
 '  if(d.type==="disconnect"){if(client){try{client.end(true);}catch(e){}client=null;}status("idle");return;}',
 '  if(d.type==="subscribe"){if(!d.topic)return;subs[d.topic]=1;if(client&&client.connected){try{client.subscribe(d.topic,{qos:0});}catch(e){}}return;}',
@@ -3635,21 +3659,24 @@ function wtEnsureWorker(){
     wtWorker=new Worker(URL.createObjectURL(blob));
     wtWorker.onmessage=wtOnWorkerMessage;
     wtWorker.onerror=function(){wtWorkerReady=false;wtConnected=false;wtSetStatus("failed");};
-    wtWorker.postMessage({type:"init",config:{...MQTT_CONFIG,clientSeed:wtIdentity.clientId}});
+    wtWorker.postMessage({type:"init",config:{...MQTT_CONFIG,brokers:wtBrokerOrder(),clientSeed:wtIdentity.clientId}});
     wtWorkerReady=true;
     return true;
   }catch(e){wtWorkerReady=false;wtSetStatus("failed");return false;}
 }
-function wtSetStatus(state){
-  wtConnState=state;
+function wtSetStatus(state,broker){
+  wtConnState=state;if(broker)wtConnBroker=broker;
   const dot=document.getElementById("wtStatusDot"),txt=document.getElementById("wtStatusText");
   if(dot){dot.className="wt-dot "+(state==="connected"?"ok":state==="failed"?"bad":"wait");}
-  if(txt){txt.textContent=state==="connected"?"已连接":state==="failed"?"连接失败":state==="connecting"?"正在连接":"未连接";}
+  if(txt){
+    const base=state==="connected"?"已连接":state==="failed"?"连接失败":state==="connecting"?"正在连接":"未连接";
+    txt.textContent=wtConnBroker?(base+" · "+wtConnBroker):base;
+  }
 }
 function wtOnWorkerMessage(ev){
   const d=ev.data||{};
   if(d.type==="status"){
-    wtConnected=d.state==="connected";wtSetStatus(d.state);
+    wtConnected=d.state==="connected";wtSetStatus(d.state,d.broker);
     if(d.state==="connected"){wtOnReconnected();}
     return;
   }
@@ -3667,6 +3694,12 @@ function wtConnect(){
   if(!wtEnsureWorker()){toast("聊天服务不可用");return;}
   wtSetStatus("connecting");
   wtWorker.postMessage({type:"connect"});
+}
+function wtReconnect(){
+  if(!wtWorker)return;
+  try{wtWorker.postMessage({type:"init",config:{...MQTT_CONFIG,brokers:wtBrokerOrder(),clientSeed:wtIdentity.clientId}});}catch(e){}
+  wtWorker.postMessage({type:"disconnect"});
+  setTimeout(function(){try{wtWorker.postMessage({type:"connect"});}catch(e){}},200);
 }
 function wtDisconnect(){
   if(wtWorker)wtWorker.postMessage({type:"disconnect"});
@@ -4175,6 +4208,27 @@ function wtRenderSettings(){
     el.style.pointerEvents=wtSettings.enabled?"":"none";
   });
   const clip=document.getElementById("wtClipboardJoin");if(clip)clip.style.display=wtSettings.enabled?"":"none";
+  const box=document.getElementById("wtBrokerOptions");
+  if(box){
+    box.innerHTML="";
+    MQTT_BROKERS.forEach(b=>{
+      const btn=document.createElement("button");
+      btn.className="limit-btn"+(wtBrokerKey()===b.key?" active":"");
+      btn.textContent=b.name;
+      btn.onclick=()=>{
+        safeSet(WT_LS_BROKER,b.key);
+        wtRenderSettings();
+        toast("聊天服务器已切换为 "+b.name);
+        wtReconnect();
+      };
+      box.appendChild(btn);
+    });
+  }
+  const now=document.getElementById("wtBrokerNow");
+  if(now){
+    const b=MQTT_BROKERS.find(x=>x.key===wtBrokerKey())||MQTT_BROKERS[0];
+    now.textContent="当前使用："+b.name+"（"+b.url+"）"+(wtConnBroker?"　已连接："+wtConnBroker:"");
+  }
 }
 function wtApplyEnabled(){
   const btn=document.getElementById("btnWatchTogether");
