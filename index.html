@@ -208,7 +208,9 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .kbd-key{display:inline-block;padding:3px 8px;border:1px solid var(--ol);border-bottom-width:2px;border-radius:6px;background:var(--sf);color:var(--on-sf);font-family:SFMono-Regular,Consolas,monospace;font-size:11px;font-weight:600;line-height:1;margin-left:4px;white-space:nowrap}
 .toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--inv-s);color:var(--inv-on-s);padding:10px 20px;border-radius:8px;font-size:13px;z-index:500;opacity:0;transition:all .3s var(--sp);box-shadow:var(--e2);pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.ad-undo{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(10px);display:flex;align-items:center;gap:12px;padding:9px 10px 9px 16px;border-radius:999px;background:rgba(28,27,31,.92);color:#fff;font-size:13px;z-index:900;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+.ad-undo{position:absolute;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(10px);display:flex;align-items:center;gap:12px;padding:9px 10px 9px 16px;border-radius:999px;background:rgba(28,27,31,.92);color:#fff;font-size:13px;z-index:900;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;white-space:nowrap;max-width:86%}
+.ad-undo span{overflow:hidden;text-overflow:ellipsis}
+.player-overlay.fs-mode .ad-undo{bottom:calc(74px + env(safe-area-inset-bottom,0px));font-size:12px}
 .ad-undo.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
 .ad-undo button{border:0;background:var(--p);color:var(--on-p);font:inherit;font-size:13px;padding:5px 14px;border-radius:999px;cursor:pointer}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:400;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
@@ -962,7 +964,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.1 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.5.2 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1171,6 +1173,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       <span class="lp-text" id="lpBadgeText">2x 加速中</span>
     </div>
     <div class="fs-toast" id="fsToast"></div>
+    <div class="ad-undo" id="adUndo"><span id="adUndoText">已跳过广告</span><button type="button" id="adUndoBtn">取消</button></div>
   </div>
 
   <div class="wt-panel" id="wtPanel">
@@ -2274,7 +2277,7 @@ const AD_BETA={
   colorRef:{red:.563,gold:.244},
   audioRef:[1.35629,1.35629,1.37592,1.37592,0.94406,0.94406,0.89338,0.89338,0.88605,1.10420,1.28443,1.31082,1.07120,1.00868,0.94033,0.46180,0.38233,0.24627,0.06926,0.16969,-0.03769,-0.15653,-0.22108,-0.49261,-0.39619,-0.64213,-0.79143,-0.93498,-0.89506,-0.93163,-1.05381,-0.97525,-1.11524,-0.95748,-1.30602,-1.33459,-1.40212,-1.48051,-1.41964,-1.53038],
   roi:{x:.22917,y:.61111,w:.57292,h:.21296},
-  sampleMs:500,warmupMs:3000,enterScore:.85,enterHits:2,
+  sampleMs:300,warmupMs:1200,enterScore:.85,enterHits:2,
   btnGate:.90,audioGate:.85,jumpSec:15,maxJumps:4,cooldownMs:3000
 };
 /* Worker 内只做逐像素视觉判定，主线程负责音频与状态机 */
@@ -2458,7 +2461,7 @@ function adShowUndo(from,to){
   if(!el)return;
   if(txt)txt.textContent="已跳过广告 "+adFmt(from)+" → "+adFmt(to);
   el.classList.add("show");clearTimeout(adUndoTimer);
-  adUndoTimer=setTimeout(function(){el.classList.remove("show")},8000);
+  adUndoTimer=setTimeout(function(){el.classList.remove("show")},4000);
 }
 
 /* ---------- 生命周期 ---------- */
@@ -4663,6 +4666,6 @@ function bkInit(){
 loadStorage();loadSearchHist();loadSrcStatus();applyTheme(currentTheme);initSearch();initMiniDrag();renderHome();updSrcCount();setupCast();wtInit();bkInit();adSkipInit();
 if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme(currentTheme);});}
 </script>
-<div class="ad-undo" id="adUndo"><span id="adUndoText">已跳过广告</span><button type="button" id="adUndoBtn">取消</button></div>
+
 </body>
 </html>
