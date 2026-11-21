@@ -236,7 +236,7 @@ footer{border-top:1px solid var(--line);margin-top:20px;padding:30px 0 44px}
         开源 · AGPL-3.0 · 无广告
       </span>
       <h1>一个 HTML，<em>打开即用的影视中心</em></h1>
-      <p class="sub">纯前端 · 单文件 · 零构建的影视聚合播放器。多源并行搜索，播放干净利落，支持投屏、选集、倍速与键盘快捷键。支持字幕导入与浏览器内实时字幕，同时提供公开 CDN，可一行代码嵌入你自己的页面。</p>
+      <p class="sub">纯前端 · 单文件 · 零构建的影视聚合播放器。多源并行搜索，播放干净利落，支持投屏、选集、倍速与键盘快捷键。支持字幕导入与浏览器内实时字幕；广告自动跳过，可用规则判定，也可切到浏览器本地小模型；选集上方一键下载整集。同时提供公开 CDN，可一行代码嵌入你自己的页面。</p>
       <div class="cta">
         <a class="btn primary" href="https://silverbullet-liang.github.io/tvbox-web/" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -307,7 +307,12 @@ footer{border-top:1px solid var(--line);margin-top:20px;padding:30px 0 44px}
         <div class="card">
           <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5l8 7-8 7V5z"/><path d="M13 5l8 7-8 7V5z"/></svg></div>
           <h3>自动跳过广告</h3>
-          <p>三色按钮、红金配色、音频指纹三路本地判断，Worker 预判不阻塞播放；跳过时显示起止时间，可随时取消。</p>
+          <p>两档识别：规则版看画面色彩与音频指纹，零下载；模型版在浏览器里本地跑一个小模型，视频 / 音频 / 图片三路输入。Worker 预判不阻塞播放，跳过时显示起止时间，可随时取消。</p>
+        </div>
+        <div class="card">
+          <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/></svg></div>
+          <h3>整集下载</h3>
+          <p>选集上方三个按钮：播放、收藏、下载。M3U8 转封装 MP4 带下载与转码双进度，MP4 直链直取，也可以 WebM 边看边录。</p>
         </div>
         <div class="card">
           <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/><path d="M8 14h4"/></svg></div>
@@ -410,7 +415,7 @@ python3 -m http.server 8000
         </div>
         <div class="rmeta">
           <div class="c"><div class="k">许可 LICENSE</div><div class="v">AGPL-3.0-or-later</div></div>
-          <div class="c"><div class="k">最新版本</div><div class="v" id="latestVer">v1.2.1</div></div>
+          <div class="c"><div class="k">最新版本</div><div class="v" id="latestVer">v2.8.1</div></div>
           <div class="c"><div class="k">内置版本</div><div class="v">Pro（v4.5）/ Mini</div></div>
           <div class="c"><div class="k">GitHub Stars</div><div class="v" id="starCount">-</div></div>
           <div class="c"><div class="k">开源地址</div><div class="v mono">github.com/silverbullet-liang/tvbox-web</div></div>
