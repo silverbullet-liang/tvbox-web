@@ -1035,7 +1035,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
       <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.1 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.2 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -2988,15 +2988,19 @@ const AD_MODEL_FALLBACK={models:[
  judge:"audio-first",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884},
   {variant:"int8",file:"int8/model.onnx",size:253074},{variant:"q8",file:"q8/model.onnx",size:89246}]}]};
 const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量"};
-let admCfg={engine:"rule",model:"silver-adskip-1-mini-alpha",variant:"",thr:0.85};
+let admCfg={engine:"rule",model:"silver-adskip-1-mini-omega",variant:"",thr:0.80};
 let admIndex=null, admListEl=null, admState={}, admSession=null, admOrt=null,
     admBusy=false, admLast=null, admTimer=null, admMelM=null;
 
 function admLoadCfg(){
-  try{admCfg=Object.assign({engine:"rule",model:"silver-adskip-1-mini-alpha",variant:"",thr:0.85},JSON.parse(safeGet(AD_MODEL_CFG,"{}"))||{});}catch(e){}
+  try{admCfg=Object.assign({engine:"rule",model:"silver-adskip-1-mini-omega",variant:"",thr:0.80},JSON.parse(safeGet(AD_MODEL_CFG,"{}"))||{});}catch(e){}
+  // 一次性迁移：旧存档仍停在 alpha 的，默认切到 omega（0.4 版以后手动改过的不再覆盖）
+  if(admCfg.model==="silver-adskip-1-mini-alpha"){
+    try{if(!safeGet("tvbox_adm_omega","")){admCfg.model="silver-adskip-1-mini-omega";admCfg.thr=0.80;safeSet("tvbox_adm_omega","1");}}catch(e){}
+  }
   if(admCfg.engine!=="model")admCfg.engine="rule";
-  if(!admCfg.model)admCfg.model="silver-adskip-1-mini-alpha";
-  var t=Number(admCfg.thr); admCfg.thr=isFinite(t)?Math.max(.5,Math.min(.99,t)):.85;
+  if(!admCfg.model)admCfg.model="silver-adskip-1-mini-omega";
+  var t=Number(admCfg.thr); admCfg.thr=isFinite(t)?Math.max(.5,Math.min(.99,t)):.80;
   try{admState=JSON.parse(safeGet(AD_MODEL_STATE,"{}"))||{};}catch(e){admState={};}
 }
 function admSaveCfg(){safeSet(AD_MODEL_CFG,JSON.stringify(admCfg));}
