@@ -622,6 +622,38 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .bk-track{height:6px;border-radius:3px;background:var(--sf-v);overflow:hidden}
 .bk-bar{height:100%;width:0%;background:var(--p);border-radius:3px;transition:width .25s}
 .bk-stage{font-size:12px;color:var(--on-sf-v);margin-top:7px;text-align:center}
+
+/* ---- legal ---- */
+/* 条款与隐私：同意门 + 阅读层 */
+.legal-gate,.legal-overlay{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.46);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.legal-gate.show,.legal-overlay.show{display:flex}
+.legal-card,.legal-sheet{width:100%;max-width:520px;background:var(--sf);color:var(--on-sf);border-radius:22px;box-shadow:0 24px 64px rgba(0,0,0,.32);display:flex;flex-direction:column;overflow:hidden;animation:legalIn .22s var(--sp)}
+@keyframes legalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.legal-card{max-height:90vh;padding:20px 20px 14px;overflow:auto;-webkit-overflow-scrolling:touch}
+.legal-cap{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--on-sf-v);font-weight:700}
+.legal-h{font-size:19px;font-weight:650;margin:7px 0 12px;letter-spacing:-.2px;line-height:1.35}
+.legal-p{font-size:13px;line-height:1.72;color:var(--on-sf-v);margin:0 0 10px}
+.legal-p b{color:var(--on-sf);font-weight:650}
+.legal-links{display:flex;gap:8px;margin:14px 0 4px}
+.legal-link{flex:1;border:0;padding:10px 8px;border-radius:13px;background:var(--p-c);color:var(--on-p-c);font:600 12.5px/1.3 inherit;cursor:pointer;text-align:center}
+.legal-link:active{opacity:.82}
+.legal-ver{font-size:11px;color:var(--on-sf-v);opacity:.75;margin:4px 0 0}
+.legal-agree{width:100%;margin-top:14px;padding:13px;border:0;border-radius:14px;background:var(--p);color:var(--on-p);font:650 14px/1 inherit;cursor:pointer}
+.legal-agree:active{opacity:.88}
+.legal-deny{width:100%;margin-top:6px;padding:11px;border:0;border-radius:14px;background:transparent;color:var(--on-sf-v);font:500 13px/1 inherit;cursor:pointer}
+.legal-deny-tip{display:none;font-size:12px;line-height:1.62;color:var(--e);margin-top:8px;padding:10px 12px;background:var(--e-c);border-radius:12px}
+.legal-sheet{max-height:90vh}
+.legal-bar{display:flex;align-items:center;gap:8px;padding:13px 6px 12px 18px;border-bottom:1px solid var(--ol-v)}
+.legal-title{flex:1;font-size:15px;font-weight:650}
+.legal-x{background:none;border:0;padding:9px;cursor:pointer;color:var(--on-sf-v);line-height:0}
+.legal-body{padding:4px 20px 26px;overflow:auto;-webkit-overflow-scrolling:touch;font-size:13.5px;line-height:1.78;color:var(--on-sf-v)}
+.legal-body h2{font-size:17px;color:var(--on-sf);margin:18px 0 8px;font-weight:650;letter-spacing:-.2px}
+.legal-body h3{font-size:14.5px;color:var(--on-sf);margin:16px 0 6px;font-weight:650}
+.legal-body p{margin:0 0 10px}
+.legal-body ul{margin:0 0 10px;padding-left:18px}
+.legal-body li{margin:3px 0}
+.legal-body .legal-err{color:var(--e)}
+@media(max-width:420px){.legal-card{padding:18px 16px 12px}.legal-links{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -1033,9 +1065,22 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
           </div>
         </div>
       </div>
-      <div class="st-section">
+            <div class="st-section">
+        <div class="st-label">账户与条款</div>
+        <div class="st-card">
+          <div class="st-item" id="legalRowPrivacy">
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:shield-check" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">隐私政策</div><div class="s" id="legalSubprivacy">数据存在哪里、会发往哪些第三方</div></div></div>
+            <iconify-icon icon="lucide:chevron-right" style="color:var(--ol)"></iconify-icon>
+          </div>
+          <div class="st-item" id="legalRowDisclaimer" style="border-bottom:none">
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:scale" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">免责声明</div><div class="s" id="legalSubdisclaimer">内置源只做可用性检查，不检查合规</div></div></div>
+            <iconify-icon icon="lucide:chevron-right" style="color:var(--ol)"></iconify-icon>
+          </div>
+        </div>
+      </div>
+<div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.2 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.3 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -2976,11 +3021,15 @@ function adSkipInit(){
   /* ================= 广告识别模型（beta） ================= */
 const AD_MODEL_CFG="tvbox.adm.v1", AD_MODEL_STATE="tvbox.adm.state.v1";
 const AD_MODEL_BASES=[
-  ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"],
+  ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
   ["ghproxy","https://ghproxy.net/https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"],
-  ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"]
+  ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
 ];
 const AD_MODEL_FALLBACK={models:[
+{id:"silver-adskip-1-mini-omega",name:"广告识别 mini Omega",beta:true,version:"1.0.0-omega.1",params:70483,threshold:0.8,
+ judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f0c61ab755c6aae0eaf639c36efa113f682d6b8968910628942c7a018a66f604"},
+  {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"e522e7942c2dc9b7ffcaa7d1a159a90c1b212f52905347637ff395cf800f11e7"},
+  {variant:"q8",file:"q8/model.onnx",size:89250,sha256:"c68f36d5cb5551ac1d8db29d3ec9a4a105a1fd1afa723cb11cf86b23a4e86006"}]},
 {id:"silver-adskip-1-mini-beta",name:"广告识别 mini",beta:true,version:"1.0.0-beta.1",params:48963,threshold:0.85,
  judge:"max",files:[{variant:"fp32",file:"fp32/model.onnx",size:199796},
   {variant:"int8",file:"int8/model.onnx",size:172418},{variant:"q8",file:"q8/model.onnx",size:84750}]},
@@ -3022,14 +3071,35 @@ function admRecommend(){
 }
 
 /* ---- 拉索引 ---- */
+let admIdxState="idle";   /* idle → loading → live | fallback */
+function admTimeoutFetch(u,ms){
+  ms=ms||6000;
+  if(!window.AbortController)return fetch(u,{cache:"no-cache"});
+  var c=new AbortController(), t=setTimeout(function(){try{c.abort()}catch(e){}},ms);
+  return fetch(u,{cache:"no-cache",signal:c.signal}).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
+}
+function admSyncModel(){
+  var ms=(admIndex&&admIndex.models)||[]; if(!ms.length)return;
+  if(!ms.filter(function(m){return m.id===admCfg.model;}).length){
+    admCfg.model=ms[0].id; admCfg.variant=""; admSaveCfg(); admLoadSessionReset();
+  }
+}
 async function admFetchIndex(){
+  if(admIdxState==="loading")return admIndex;
+  admIdxState="loading";
   for(var i=0;i<AD_MODEL_BASES.length;i++){
     try{
-      var r=await fetch(AD_MODEL_BASES[i][1]+"models/index.json",{cache:"no-cache"});
-      if(r.ok){var j=await r.json(); if(j&&j.models&&j.models.length){admIndex=j;admIndex._base=AD_MODEL_BASES[i][1];return j;}}
+      var r=await admTimeoutFetch(AD_MODEL_BASES[i][1]+"models/index.json",6000);
+      if(r.ok){
+        var j=await r.json();
+        if(j&&j.models&&j.models.length){
+          admIndex=j; admIndex._base=AD_MODEL_BASES[i][1]; admIdxState="live"; admSyncModel(); return j;
+        }
+      }
     }catch(e){}
   }
-  admIndex=AD_MODEL_FALLBACK; admIndex._base=AD_MODEL_BASES[0][1];
+  admIndex=AD_MODEL_FALLBACK; admIndex._base=AD_MODEL_BASES[0][1]; admIdxState="fallback";
+  admSyncModel();
   return admIndex;
 }
 
@@ -3067,7 +3137,14 @@ function admRender(){
   }
   el.innerHTML="";
   var ms=(admIndex&&admIndex.models)||[];
-  if(!ms.length){el.innerHTML='<div class="ads">读取模型列表失败，稍后重试</div>';return;}
+  if(!ms.length){
+    var busy=(admIdxState==="idle"||admIdxState==="loading");
+    el.innerHTML='<div class="ads">'+(busy?"正在读取模型列表…":"读取模型列表失败，稍后重试")+'</div>';
+    return;
+  }
+  if(admIdxState==="fallback"){
+    el.innerHTML='<div class="ads">网络不可用，以下为内置清单；下载时会重新尝试各镜像</div>';
+  }
   ms.forEach(function(m){
     var card=document.createElement("div");
     var sel=admCfg.model===m.id;
@@ -3111,7 +3188,7 @@ async function admDownload(id,variant){
     var base=AD_MODEL_BASES[i][1];
     var u=base+"models/"+id+"/"+f.file;
     try{
-      var r=await fetch(u); if(!r.ok)continue;
+      var r=await admTimeoutFetch(u,20000); if(!r.ok)continue;
       var total=Number(r.headers.get("content-length"))||f.size||0;
       if(r.body&&r.body.getReader){
         var reader=r.body.getReader(), chunks=[], got=0;
@@ -3381,7 +3458,7 @@ async function admInit(){
   }
 }
 window.admPredict=admPredict; window.admTick=admTick; window.admInit=admInit; window.admApplyEngine=admApplyEngine;
-window.admDownload=admDownload; window.admFetchIndex=admFetchIndex; window.admModelEntry=admModelEntry; window.admLoadSession=admLoadSession; window.admRender=admRender;
+window.admTimeoutFetch=admTimeoutFetch; window.admDownload=admDownload; window.admFetchIndex=admFetchIndex; window.admModelEntry=admModelEntry; window.admLoadSession=admLoadSession; window.admRender=admRender;
 window.admDownloadModel=admDownload; window.admGetState=function(){return admState;};
 window.admGetCfg=function(){return admCfg;}; window.admSetCfg=function(k,v){admCfg[k]=v;admSaveCfg();};
 
@@ -5565,5 +5642,173 @@ loadStorage();loadSearchHist();loadSrcStatus();applyTheme(currentTheme);initSear
 if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme(currentTheme);});}
 </script>
 
+  <div class="legal-gate" id="legalGate">
+    <div class="legal-card">
+      <div class="legal-cap">使用前须知</div>
+      <div class="legal-h">先读两条，再开始用</div>
+      <p class="legal-p">这是一个浏览器端的影视聚合播放器，<b>不提供、不上传、不存储任何影视内容</b>。片子全部来自第三方接口。</p>
+      <p class="legal-p">内置源只有一份地址清单。程序<b>只检查资源可用性，不检查合规</b>：源能正常响应，只说明技术上可达，不代表内容已获授权。若你认为某个源侵权，请直接寻找该源对应的运营方要求下架；本工具能做到的只是把它从内置清单里移除。</p>
+      <p class="legal-p">画面、声音、观看记录都不出你的设备。广告识别模型在你的浏览器里本地运行。</p>
+      <div class="legal-links">
+        <button type="button" class="legal-link" data-doc="disclaimer">免责声明</button>
+        <button type="button" class="legal-link" data-doc="privacy">隐私政策</button>
+      </div>
+      <div class="legal-ver" id="legalVer">条款版本</div>
+      <button type="button" class="legal-agree" id="legalAgree">同意并继续</button>
+      <button type="button" class="legal-deny" id="legalDeny">不同意</button>
+      <div class="legal-deny-tip" id="legalDenyTip">不同意就无法使用本工具。所有内容与判断都在你的浏览器里完成，使用风险与责任由使用者承担。若不同意，请关闭页面。</div>
+    </div>
+  </div>
+
+  <div class="legal-overlay" id="legalOverlay">
+    <div class="legal-sheet">
+      <div class="legal-bar">
+        <div class="legal-title" id="legalTitle">条款</div>
+        <button type="button" class="legal-x" id="legalClose" aria-label="关闭"><iconify-icon icon="lucide:x" style="font-size:20px"></iconify-icon></button>
+      </div>
+      <div class="legal-body" id="legalBody"></div>
+    </div>
+  </div>
+
+<script>
+/* TVBox Web · 条款与隐私（动态拉取 + 首次同意门） */
+(function(){
+  var BASES=[
+    "legal/",
+    "https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web@main/legal/",
+    "https://raw.githubusercontent.com/silverbullet-liang/tvbox-web/main/legal/"
+  ];
+  var DOCS={privacy:{t:"隐私政策",f:"privacy.md"},disclaimer:{t:"免责声明",f:"disclaimer.md"}};
+  var KEY="tvbox_legal_agree", FALLBACK_VER="2026-11-23";
+  var cache={}, busy={};
+
+  function tfetch(u,ms){
+    ms=ms||7000;
+    if(!window.AbortController)return fetch(u);
+    var c=new AbortController(), t=setTimeout(function(){try{c.abort()}catch(e){}},ms);
+    return fetch(u,{signal:c.signal}).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
+  }
+  function readRec(){try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;}}
+  function writeRec(v){try{localStorage.setItem(KEY,JSON.stringify({v:v,at:Date.now()}));}catch(e){}}
+  function curVer(){
+    return (cache.disclaimer&&cache.disclaimer.ver)||(cache.privacy&&cache.privacy.ver)||FALLBACK_VER;
+  }
+  function fetchDoc(k){
+    if(cache[k])return Promise.resolve(cache[k]);
+    if(busy[k])return busy[k];
+    var i=0;
+    function next(){
+      if(i>=BASES.length)return Promise.reject(new Error("unreachable"));
+      var u=BASES[i++]+DOCS[k].f;
+      return tfetch(u,7000).then(function(r){
+        if(!r.ok)throw new Error("http "+r.status);
+        return r.text();
+      }).then(function(txt){
+        if(!txt||txt.length<120)throw new Error("empty");
+        var m=/<!--\s*v:([0-9]{4}-[0-9]{2}-[0-9]{2})\s*-->/.exec(txt);
+        var d={text:txt,ver:m?m[1]:""};
+        cache[k]=d;return d;
+      }).catch(function(){return next();});
+    }
+    busy[k]=next().then(function(d){busy[k]=null;return d;},function(e){busy[k]=null;throw e;});
+    return busy[k];
+  }
+
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function md(txt){
+    var out=[], buf=[], inList=false;
+    function flushP(){if(buf.length){out.push("<p>"+buf.join(" ")+"</p>");buf=[];}}
+    function flushL(){if(inList){out.push("</ul>");inList=false;}}
+    txt.replace(/\r/g,"").split("\n").forEach(function(ln){
+      var t=ln.trim();
+      if(!t||/^<!--/.test(t)){flushP();flushL();return;}
+      if(/^#{2,4}\s+/.test(t)){flushP();flushL();out.push("<h3>"+esc(t.replace(/^#{2,4}\s+/,""))+"</h3>");return;}
+      if(/^#\s+/.test(t)){flushP();flushL();out.push("<h2>"+esc(t.slice(2))+"</h2>");return;}
+      if(/^-\s+/.test(t)){flushP();if(!inList){out.push("<ul>");inList=true;}out.push("<li>"+esc(t.slice(2))+"</li>");return;}
+      buf.push(esc(t));
+    });
+    flushP();flushL();
+    return out.join("");
+  }
+
+  var gate, overlay, body, title;
+  function $(id){return document.getElementById(id);}
+
+  function openDoc(k){
+    if(!overlay){overlay=$("legalOverlay");body=$("legalBody");title=$("legalTitle");}
+    if(!overlay)return;
+    title.textContent=DOCS[k].t;
+    body.innerHTML='<p class="legal-err">正在读取…</p>';
+    overlay.classList.add("show");
+    overlay.scrollTop=0;
+    fetchDoc(k).then(function(d){
+      body.innerHTML=md(d.text);
+      var sub=$("legalSub"+k);
+      if(sub&&d.ver)sub.textContent=sub.dataset.base+"　"+d.ver;
+      overlay.scrollTop=0;
+      body.scrollTop=0;
+    }).catch(function(){
+      body.innerHTML='<p class="legal-err">读取失败，请检查网络后重试。也可以直接访问仓库里的 legal/'+DOCS[k].f+' 查看。</p>';
+    });
+  }
+  function closeDoc(){if(overlay)overlay.classList.remove("show");}
+
+  function agree(){
+    writeRec(curVer());
+    if(gate)gate.classList.remove("show");
+    document.documentElement.style.overflow="";
+  }
+  function deny(){
+    var tip=$("legalDenyTip"); if(tip)tip.style.display="block";
+  }
+  function showGate(){
+    if(!gate){gate=$("legalGate");}
+    if(!gate)return;
+    gate.classList.add("show");
+    document.documentElement.style.overflow="hidden";
+    var v=$("legalVer"); if(v)v.textContent="条款版本 "+curVer();
+    fetchDoc("disclaimer").then(function(d){
+      var v2=$("legalVer"); if(v2&&d.ver)v2.textContent="条款版本 "+d.ver;
+    }).catch(function(){});
+  }
+
+  function bind(){
+    var am=$("legalAgree"), dm=$("legalDeny"), cx=$("legalClose");
+    if(am)am.onclick=agree;
+    if(dm)dm.onclick=deny;
+    if(cx)cx.onclick=closeDoc;
+    if(overlay)overlay.addEventListener("click",function(e){if(e.target===overlay){e.preventDefault();e.stopPropagation();closeDoc();}},true);
+    document.querySelectorAll("[data-doc]").forEach(function(b){
+      b.onclick=function(e){e.preventDefault();openDoc(b.getAttribute("data-doc"));};
+    });
+    ["privacy","disclaimer"].forEach(function(k){
+      var row=$("legalRow"+k.charAt(0).toUpperCase()+k.slice(1));
+      var sub=$("legalSub"+k);
+      if(sub&&!sub.dataset.base)sub.dataset.base=sub.textContent;
+      if(row)row.onclick=function(e){
+        if(e.target.closest("[data-doc]"))return;
+        openDoc(k);
+      };
+    });
+    document.addEventListener("keydown",function(e){
+      if(e.key==="Escape"&&overlay&&overlay.classList.contains("show"))closeDoc();
+    },true);
+  }
+
+  function boot(){
+    bind();
+    var rec=readRec();
+    if(!rec||!rec.v){showGate();return;}
+    if(Date.now()-(rec.at||0)<43200000)return;  /* 12 小时内不重复校验 */
+    fetchDoc("disclaimer").then(function(d){
+      if(d.ver&&d.ver!==rec.v)showGate();
+      else writeRec(rec.v);
+    }).catch(function(){});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+  window.legalOpen=openDoc;
+})();
+
+</script>
 </body>
 </html>
