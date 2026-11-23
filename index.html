@@ -654,6 +654,11 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 .legal-body li{margin:3px 0}
 .legal-body .legal-err{color:var(--e)}
 @media(max-width:420px){.legal-card{padding:18px 16px 12px}.legal-links{flex-direction:column}}
+/* ---- 折叠区块 ---- */
+.fold-head{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.fold-head .fold-arrow{color:var(--ol);transition:transform .2s var(--sp);flex:none}
+.fold-head.folded .fold-arrow{transform:rotate(-90deg)}
+.fold-body[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -958,8 +963,8 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
         <div class="st-label">实时字幕</div>
         <div class="st-card">
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:12px">
-            <div class="left"><iconify-icon icon="lucide:cpu"></iconify-icon><div><div class="t">识别模型</div><div class="s" id="asrDeviceHint">正在检测设备…</div></div></div>
-            <div class="asr-list" id="asrList"></div>
+            <div class="left fold-head" id="asrFoldHead" role="button" tabindex="0" aria-expanded="false" aria-controls="asrFoldBody"><iconify-icon icon="lucide:cpu"></iconify-icon><div style="flex:1;min-width:0"><div class="t">识别模型</div><div class="s" id="asrDeviceHint">正在检测设备…</div></div><iconify-icon class="fold-arrow" icon="lucide:chevron-down"></iconify-icon></div>
+            <div class="fold-body" id="asrFoldBody" hidden><div class="asr-list" id="asrList"></div></div>
           </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:10px">
             <div class="left"><iconify-icon icon="lucide:languages"></iconify-icon><div><div class="t">识别语言</div><div class="s">「自动」默认按中文识别；看外语片请手动指定。粤语按中文转写（模型输出统一转简体）</div></div></div>
@@ -988,8 +993,8 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
             <div class="limit-options" id="adEngineOptions"></div>
           </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:12px" id="adModelWrap">
-            <div class="left"><iconify-icon icon="lucide:brain-circuit"></iconify-icon><div><div class="t">识别模型 <span class="adm-badge">beta</span></div><div class="s" id="adModelHint">正在读取模型列表…</div></div></div>
-            <div class="asr-list" id="adModelList"></div>
+            <div class="left fold-head" id="adFoldHead" role="button" tabindex="0" aria-expanded="false" aria-controls="adFoldBody"><iconify-icon icon="lucide:brain-circuit"></iconify-icon><div style="flex:1;min-width:0"><div class="t">识别模型</div><div class="s" id="adModelHint">正在读取模型列表…</div></div><iconify-icon class="fold-arrow" icon="lucide:chevron-down"></iconify-icon></div>
+            <div class="fold-body" id="adFoldBody" hidden><div class="asr-list" id="adModelList"></div></div>
           </div>
           <div class="st-item" style="flex-direction:column;align-items:stretch;gap:4px">
             <div class="slider-row"><div class="slider-head"><div class="t">判定阈值</div><div class="v" id="admThrV">85%</div></div>
@@ -1080,7 +1085,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.3 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.4 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -3022,18 +3027,19 @@ function adSkipInit(){
 const AD_MODEL_CFG="tvbox.adm.v1", AD_MODEL_STATE="tvbox.adm.state.v1";
 const AD_MODEL_BASES=[
   ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
+  ["gcore","https://gcore.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
   ["ghproxy","https://ghproxy.net/https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"],
   ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
 ];
 const AD_MODEL_FALLBACK={models:[
-{id:"silver-adskip-1-mini-omega",name:"广告识别 mini Omega",beta:true,version:"1.0.0-omega.1",params:70483,threshold:0.8,
+{id:"silver-adskip-1-mini-omega",name:"广告识别 mini Omega",beta:false,version:"1.0.0",frontend:true,params:70483,threshold:0.8,
  judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f0c61ab755c6aae0eaf639c36efa113f682d6b8968910628942c7a018a66f604"},
   {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"e522e7942c2dc9b7ffcaa7d1a159a90c1b212f52905347637ff395cf800f11e7"},
   {variant:"q8",file:"q8/model.onnx",size:89250,sha256:"c68f36d5cb5551ac1d8db29d3ec9a4a105a1fd1afa723cb11cf86b23a4e86006"}]},
-{id:"silver-adskip-1-mini-beta",name:"广告识别 mini",beta:true,version:"1.0.0-beta.1",params:48963,threshold:0.85,
+{id:"silver-adskip-1-mini-beta",name:"广告识别 mini",beta:true,version:"1.0.0-beta.1",frontend:false,params:48963,threshold:0.85,
  judge:"max",files:[{variant:"fp32",file:"fp32/model.onnx",size:199796},
   {variant:"int8",file:"int8/model.onnx",size:172418},{variant:"q8",file:"q8/model.onnx",size:84750}]},
-{id:"silver-adskip-1-mini-alpha",name:"广告识别 mini Alpha",beta:true,version:"1.0.0-alpha.1",params:70483,threshold:0.85,
+{id:"silver-adskip-1-mini-alpha",name:"广告识别 mini Alpha",beta:true,version:"1.0.0-alpha.1",frontend:false,params:70483,threshold:0.85,
  judge:"audio-first",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884},
   {variant:"int8",file:"int8/model.onnx",size:253074},{variant:"q8",file:"q8/model.onnx",size:89246}]}]};
 const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量"};
@@ -3084,19 +3090,34 @@ function admSyncModel(){
     admCfg.model=ms[0].id; admCfg.variant=""; admSaveCfg(); admLoadSessionReset();
   }
 }
-async function admFetchIndex(){
-  if(admIdxState==="loading")return admIndex;
+const AD_INDEX_SCHEMA=3;   /* schema 3 起带 frontend 展示开关 */
+let admIdxPromise=null;
+function admFetchIndex(){
+  if(admIdxPromise)return admIdxPromise;            /* 并发调用共享同一次请求 */
+  admIdxPromise=admFetchIndexImpl().then(function(j){admIdxPromise=null;return j;},
+                                            function(e){admIdxPromise=null;throw e;});
+  return admIdxPromise;
+}
+async function admFetchIndexImpl(){
   admIdxState="loading";
+  var stale=null;
   for(var i=0;i<AD_MODEL_BASES.length;i++){
     try{
-      var r=await admTimeoutFetch(AD_MODEL_BASES[i][1]+"models/index.json",6000);
+      var r=await admTimeoutFetch(AD_MODEL_BASES[i][1]+"models/index.json?v="+AD_INDEX_SCHEMA,6000);
       if(r.ok){
         var j=await r.json();
         if(j&&j.models&&j.models.length){
-          admIndex=j; admIndex._base=AD_MODEL_BASES[i][1]; admIdxState="live"; admSyncModel(); return j;
+          if(Number(j.schema||0)>=AD_INDEX_SCHEMA){
+            admIndex=j; admIndex._base=AD_MODEL_BASES[i][1]; admIdxState="live"; admSyncModel(); return j;
+          }
+          if(!stale)stale={j:j,base:AD_MODEL_BASES[i][1]};
         }
       }
     }catch(e){}
+  }
+  if(stale){
+    admIndex=stale.j; admIndex._base=stale.base; admIdxState="stale"; admSyncModel();
+    return admIndex;
   }
   admIndex=AD_MODEL_FALLBACK; admIndex._base=AD_MODEL_BASES[0][1]; admIdxState="fallback";
   admSyncModel();
@@ -3104,6 +3125,17 @@ async function admFetchIndex(){
 }
 
 /* ---- 渲染 ---- */
+function admStatusText(rec){
+  var m=admModelEntry(admCfg.model);
+  if(!m)return "智能推荐："+AD_VARIANT_LABEL[rec.variant]+"　"+rec.why;
+  var st=admState[m.id]||{};
+  if(st.pct&&st.pct<100)return "下载中 "+st.pct+"%";
+  if(st.ready===1&&st.variant===admCfg.variant){
+    var f=(m.files||[]).filter(function(x){return x.variant===admCfg.variant;})[0];
+    return "已就绪 · "+AD_VARIANT_LABEL[admCfg.variant]+" "+(f?admFmtSize(f.size):"")+"　展开可切换档位";
+  }
+  return "智能推荐："+AD_VARIANT_LABEL[rec.variant]+"　"+rec.why;
+}
 function admFmtSize(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.round(n/1024)+" KB";}
 function admModelEntry(id){
   var ms=(admIndex&&admIndex.models)||[];
@@ -3133,10 +3165,10 @@ function admRender(){
   if(mh){
     var rec=admRecommend();
     if(!admCfg.variant)admCfg.variant=rec.variant;
-    mh.textContent="智能推荐："+AD_VARIANT_LABEL[rec.variant]+"　"+rec.why;
+    mh.textContent=admStatusText(rec);
   }
   el.innerHTML="";
-  var ms=(admIndex&&admIndex.models)||[];
+  var ms=((admIndex&&admIndex.models)||[]).filter(function(m){return m.frontend!==false;});
   if(!ms.length){
     var busy=(admIdxState==="idle"||admIdxState==="loading");
     el.innerHTML='<div class="ads">'+(busy?"正在读取模型列表…":"读取模型列表失败，稍后重试")+'</div>';
@@ -3144,6 +3176,8 @@ function admRender(){
   }
   if(admIdxState==="fallback"){
     el.innerHTML='<div class="ads">网络不可用，以下为内置清单；下载时会重新尝试各镜像</div>';
+  }else if(admIdxState==="stale"){
+    el.innerHTML='<div class="ads">镜像缓存未更新，列表可能包含已下架的旧模型</div>';
   }
   ms.forEach(function(m){
     var card=document.createElement("div");
@@ -3908,11 +3942,15 @@ async function asrDelete(key){
   if(asrLoadedModel===m.id){try{asrWorker&&asrWorker.terminate();}catch(e){}asrWorker=null;asrLoadedModel="";}
   renderAsr();toast("已删除「"+m.name+"」模型缓存");
 }
+function asrBrief(){
+  var m=ASR_CATALOG[asrCfg.model];if(!m)return "";
+  return asrState[m.id]?" · 当前「"+m.name+"」已就绪":" · 当前「"+m.name+"」未下载";
+}
 function renderAsr(){
   const box=document.getElementById("asrList");if(!box)return;
   const rec=asrRecommend(),d=asrDevice();
   const hint=document.getElementById("asrDeviceHint");
-  if(hint)hint.textContent=d.cores+" 核 · "+d.mem+" GB 内存 · "+(d.webgpu?"WebGPU 可用":"仅 WASM")+" · 推荐「"+ASR_CATALOG[rec].name+"」";
+  if(hint)hint.textContent=d.cores+" 核 · "+d.mem+" GB 内存 · "+(d.webgpu?"WebGPU 可用":"仅 WASM")+" · 推荐「"+ASR_CATALOG[rec].name+"」"+asrBrief();
   box.innerHTML=Object.keys(ASR_CATALOG).map(function(k){
     const m=ASR_CATALOG[k],on=asrCfg.model===k,st=asrState[m.id];
     const dl=asrDl&&asrDl.model===m.id;
@@ -5679,7 +5717,7 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
     "https://raw.githubusercontent.com/silverbullet-liang/tvbox-web/main/legal/"
   ];
   var DOCS={privacy:{t:"隐私政策",f:"privacy.md"},disclaimer:{t:"免责声明",f:"disclaimer.md"}};
-  var KEY="tvbox_legal_agree", FALLBACK_VER="2026-11-23";
+  var KEY="tvbox_legal_agree", FALLBACK_VER="2026-11-23", DOC_V="2026-11-23";
   var cache={}, busy={};
 
   function tfetch(u,ms){
@@ -5699,7 +5737,7 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
     var i=0;
     function next(){
       if(i>=BASES.length)return Promise.reject(new Error("unreachable"));
-      var u=BASES[i++]+DOCS[k].f;
+      var u=BASES[i++]+DOCS[k].f+"?v="+DOC_V;
       return tfetch(u,7000).then(function(r){
         if(!r.ok)throw new Error("http "+r.status);
         return r.text();
@@ -5809,6 +5847,35 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
   window.legalOpen=openDoc;
 })();
 
+</script>
+<script>
+/* 模型区折叠：默认收起，展开状态本地记忆 */
+(function(){
+  var LIST=[
+    {head:"asrFoldHead",body:"asrFoldBody",key:"tvbox_fold_asr"},
+    {head:"adFoldHead",body:"adFoldBody",key:"tvbox_fold_ad"}
+  ];
+  LIST.forEach(function(it){
+    var head=document.getElementById(it.head),body=document.getElementById(it.body);
+    if(!head||!body)return;
+    var open=false;
+    try{open=localStorage.getItem(it.key)==="1";}catch(e){}
+    function apply(){
+      body.hidden=!open;
+      head.classList.toggle("folded",!open);
+      head.setAttribute("aria-expanded",open?"true":"false");
+    }
+    function toggle(){
+      open=!open;apply();
+      try{localStorage.setItem(it.key,open?"1":"0");}catch(e){}
+    }
+    head.addEventListener("click",toggle);
+    head.addEventListener("keydown",function(e){
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle();}
+    });
+    apply();
+  });
+})();
 </script>
 </body>
 </html>
