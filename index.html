@@ -1085,7 +1085,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.4 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.5 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -3032,6 +3032,10 @@ const AD_MODEL_BASES=[
   ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
 ];
 const AD_MODEL_FALLBACK={models:[
+{id:"silver-adskip-1-Pro",name:"广告识别 Pro",beta:false,frontend:true,version:"1.0.0-pro.3",params:70483,threshold:0.6,
+ judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f45baaf8e04de28b02f181399efe73c365f3f49ab5ac11942dd061331ea10bf3"},
+  {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"765ffb245ab6e2b1d30ca02620639a488aeb290291ce77e90a2aaca1d47055c3"},
+  {variant:"fp16",file:"fp16/model.onnx",size:146150,sha256:"223c376287cf9dbbb496a86d6b0432d4245eb4e24aa67875f59cfaad3ec34153"}]},
 {id:"silver-adskip-1-mini-omega",name:"广告识别 mini Omega",beta:false,version:"1.0.0",frontend:true,params:70483,threshold:0.8,
  judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f0c61ab755c6aae0eaf639c36efa113f682d6b8968910628942c7a018a66f604"},
   {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"e522e7942c2dc9b7ffcaa7d1a159a90c1b212f52905347637ff395cf800f11e7"},
@@ -3042,7 +3046,7 @@ const AD_MODEL_FALLBACK={models:[
 {id:"silver-adskip-1-mini-alpha",name:"广告识别 mini Alpha",beta:true,version:"1.0.0-alpha.1",frontend:false,params:70483,threshold:0.85,
  judge:"audio-first",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884},
   {variant:"int8",file:"int8/model.onnx",size:253074},{variant:"q8",file:"q8/model.onnx",size:89246}]}]};
-const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量"};
+const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量",fp16:"半精度 fp16"};
 let admCfg={engine:"rule",model:"silver-adskip-1-mini-omega",variant:"",thr:0.80};
 let admIndex=null, admListEl=null, admState={}, admSession=null, admOrt=null,
     admBusy=false, admLast=null, admTimer=null, admMelM=null;
@@ -3194,6 +3198,7 @@ function admRender(){
       html+='<span data-var="'+f.variant+'" style="cursor:pointer;'+(on?'outline:1.5px solid currentColor':'')+'">'+AD_VARIANT_LABEL[f.variant]+' '+admFmtSize(f.size)+'</span>';
     });
     html+='</div>';
+    if(typeof m.threshold==="number")html+='<div class="ads">建议阈值 '+Math.round(m.threshold*100)+'%</div>';
     var ready=st.ready===1&&st.variant===admCfg.variant;
     html+='<div class="asr-state"><div class="asr-bar"><i style="width:'+(ready?100:(st.pct||0))+'%"></i></div><div class="asr-pct">'+(ready?"已就绪":(st.pct?st.pct+"%":admFmtSize((cur&&cur.size)||0)))+'</div></div>';
     html+='<div class="asr-actions"><button class="asr-btn primary" data-act="adm-dl">'+(ready?"重新下载":"下载并启用")+'</button></div>';
@@ -3241,7 +3246,10 @@ async function admDownload(id,variant){
   }
   try{ var c=await caches.open("tvbox-adm"); await c.put(location.origin+"/__adm_model/"+id+"/"+variant,new Response(new Blob([buf]))); }catch(e){}
   st.pct=100; st.ready=1; st.size=buf.length; admState[id]=st; admSaveState(); admRender();
-  toast("模型已就绪");
+  if(typeof m.threshold==="number"&&Math.abs(m.threshold-admCfg.thr)>0.005){
+    admCfg.thr=m.threshold; admSaveCfg();
+    toast("模型已就绪 · 阈值已设为 "+Math.round(m.threshold*100)+"%");
+  }else toast("模型已就绪");
   admLoadSession(id,variant).catch(function(){});
 }
 
