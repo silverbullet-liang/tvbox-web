@@ -1085,7 +1085,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.5 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.6 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -3026,8 +3026,8 @@ function adSkipInit(){
   /* ================= 广告识别模型（beta） ================= */
 const AD_MODEL_CFG="tvbox.adm.v1", AD_MODEL_STATE="tvbox.adm.state.v1";
 const AD_MODEL_BASES=[
-  ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
   ["gcore","https://gcore.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
+  ["jsdelivr","https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web-models@main/"],
   ["ghproxy","https://ghproxy.net/https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"],
   ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
 ];
@@ -3094,7 +3094,7 @@ function admSyncModel(){
     admCfg.model=ms[0].id; admCfg.variant=""; admSaveCfg(); admLoadSessionReset();
   }
 }
-const AD_INDEX_SCHEMA=3;   /* schema 3 起带 frontend 展示开关 */
+const AD_INDEX_SCHEMA=4;   /* schema 3 起带 frontend 展示开关 */
 let admIdxPromise=null;
 function admFetchIndex(){
   if(admIdxPromise)return admIdxPromise;            /* 并发调用共享同一次请求 */
