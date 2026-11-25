@@ -1089,7 +1089,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.7 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.9 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -3036,18 +3036,18 @@ const AD_MODEL_BASES=[
   ["raw","https://raw.githubusercontent.com/silverbullet-liang/tvbox-web-models/main/"]
 ];
 const AD_MODEL_FALLBACK={models:[
-{id:"silver-adskip-1-Pro",name:"广告识别 Pro",beta:false,frontend:true,version:"1.0.0-pro.3",params:70483,threshold:0.6,
+{id:"silver-adskip-1-Pro",name:"silver-adskip-1-Pro",beta:false,frontend:true,version:"1.0.0-pro.3",params:70483,threshold:0.6,
  judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f45baaf8e04de28b02f181399efe73c365f3f49ab5ac11942dd061331ea10bf3"},
   {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"765ffb245ab6e2b1d30ca02620639a488aeb290291ce77e90a2aaca1d47055c3"},
   {variant:"fp16",file:"fp16/model.onnx",size:146150,sha256:"223c376287cf9dbbb496a86d6b0432d4245eb4e24aa67875f59cfaad3ec34153"}]},
-{id:"silver-adskip-1-mini-omega",name:"广告识别 mini Omega",beta:false,version:"1.0.0",frontend:true,params:70483,threshold:0.8,
+{id:"silver-adskip-1-mini-omega",name:"silver-adskip-1-mini-omega",beta:false,version:"1.0.0",frontend:true,params:70483,threshold:0.8,
  judge:"audio+visual",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884,sha256:"f0c61ab755c6aae0eaf639c36efa113f682d6b8968910628942c7a018a66f604"},
   {variant:"int8",file:"int8/model.onnx",size:253074,sha256:"e522e7942c2dc9b7ffcaa7d1a159a90c1b212f52905347637ff395cf800f11e7"},
   {variant:"q8",file:"q8/model.onnx",size:89250,sha256:"c68f36d5cb5551ac1d8db29d3ec9a4a105a1fd1afa723cb11cf86b23a4e86006"}]},
-{id:"silver-adskip-1-mini-beta",name:"广告识别 mini",beta:true,version:"1.0.0-beta.1",frontend:false,params:48963,threshold:0.85,
+{id:"silver-adskip-1-mini-beta",name:"silver-adskip-1-mini-beta",beta:true,version:"1.0.0-beta.1",frontend:false,params:48963,threshold:0.85,
  judge:"max",files:[{variant:"fp32",file:"fp32/model.onnx",size:199796},
   {variant:"int8",file:"int8/model.onnx",size:172418},{variant:"q8",file:"q8/model.onnx",size:84750}]},
-{id:"silver-adskip-1-mini-alpha",name:"广告识别 mini Alpha",beta:true,version:"1.0.0-alpha.1",frontend:false,params:70483,threshold:0.85,
+{id:"silver-adskip-1-mini-alpha",name:"silver-adskip-1-mini-alpha",beta:true,version:"1.0.0-alpha.1",frontend:false,params:70483,threshold:0.85,
  judge:"audio-first",files:[{variant:"fp32",file:"fp32/model.onnx",size:285884},
   {variant:"int8",file:"int8/model.onnx",size:253074},{variant:"q8",file:"q8/model.onnx",size:89246}]}]};
 const AD_VARIANT_LABEL={fp32:"原始",int8:"int8 动态",q8:"int8 全量",fp16:"半精度 fp16"};
@@ -3098,7 +3098,7 @@ function admSyncModel(){
     admCfg.model=ms[0].id; admCfg.variant=""; admSaveCfg(); admLoadSessionReset();
   }
 }
-const AD_INDEX_SCHEMA=4;   /* schema 3 起带 frontend 展示开关 */
+const AD_INDEX_SCHEMA=6;   /* schema 3 起带 frontend 展示开关 */
 let admIdxPromise=null;
 function admFetchIndex(){
   if(admIdxPromise)return admIdxPromise;            /* 并发调用共享同一次请求 */
@@ -3782,13 +3782,13 @@ function asrLangCode(){
   return row?row[2]:"zh";
 }
 const ASR_CATALOG={
-  tiny:{id:"Xenova/whisper-tiny",name:"Whisper Tiny",mb:41.6,langs:["中","英","日","粤"],tags:["轻量","最快"],desc:"低配手机 / 老电脑",note:"长句偶有漏字"},
-  base:{id:"Xenova/whisper-base",name:"Whisper Base",mb:76.0,langs:["中","英","日","粤"],tags:["均衡","推荐"],desc:"主流手机 / 轻薄本",note:"低端机延迟 1–2 秒"},
-  small:{id:"Xenova/whisper-small",name:"Whisper Small",mb:240.2,langs:["中","英","日","粤"],tags:["高质"],desc:"高性能手机 / 桌面端",note:"粤语建议这一档起"},
-  medium:{id:"Xenova/whisper-medium",name:"Whisper Medium",mb:742.8,langs:["中","英","日","粤"],tags:["最高质","桌面"],desc:"桌面 / 大内存设备",note:"下载较久，手机不建议"},
-  tinyen:{id:"Xenova/whisper-tiny.en",name:"Whisper Tiny (English)",mb:41.0,langs:["英"],tags:["英文专用","最快"],desc:"只看英文内容",note:"中文会输出乱码"},
-  baseen:{id:"Xenova/whisper-base.en",name:"Whisper Base (English)",mb:75.4,langs:["英"],tags:["英文专用","均衡"],desc:"英文内容为主",note:"中文会输出乱码"},
-  smallen:{id:"Xenova/whisper-small.en",name:"Whisper Small (English)",mb:239.6,langs:["英"],tags:["英文专用","高质"],desc:"英文长句 / 口音",note:"中文会输出乱码"}
+  tiny:{id:"Xenova/whisper-tiny",name:"Xenova/whisper-tiny",mb:41.6,langs:["中","英","日","粤"],tags:["轻量","最快"],desc:"低配手机 / 老电脑",note:"长句偶有漏字"},
+  base:{id:"Xenova/whisper-base",name:"Xenova/whisper-base",mb:76.0,langs:["中","英","日","粤"],tags:["均衡","推荐"],desc:"主流手机 / 轻薄本",note:"低端机延迟 1–2 秒"},
+  small:{id:"Xenova/whisper-small",name:"Xenova/whisper-small",mb:240.2,langs:["中","英","日","粤"],tags:["高质"],desc:"高性能手机 / 桌面端",note:"粤语建议这一档起"},
+  medium:{id:"Xenova/whisper-medium",name:"Xenova/whisper-medium",mb:742.8,langs:["中","英","日","粤"],tags:["最高质","桌面"],desc:"桌面 / 大内存设备",note:"下载较久，手机不建议"},
+  tinyen:{id:"Xenova/whisper-tiny.en",name:"Xenova/whisper-tiny.en",mb:41.0,langs:["英"],tags:["英文专用","最快"],desc:"只看英文内容",note:"中文会输出乱码"},
+  baseen:{id:"Xenova/whisper-base.en",name:"Xenova/whisper-base.en",mb:75.4,langs:["英"],tags:["英文专用","均衡"],desc:"英文内容为主",note:"中文会输出乱码"},
+  smallen:{id:"Xenova/whisper-small.en",name:"Xenova/whisper-small.en",mb:239.6,langs:["英"],tags:["英文专用","高质"],desc:"英文长句 / 口音",note:"中文会输出乱码"}
 };
 const ASR_LANGS=[["auto","自动","zh"],["chinese","中文","zh"],["english","英语","en"],["japanese","日语","ja"],["cantonese","粤语","zh"]];
 let asrCfg={model:"tiny",lookahead:6,auto:false,lang:"auto",pre:true};

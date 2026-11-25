@@ -2,6 +2,20 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/) 与 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 规范。
 
+## [2.8.9] - 2026-11-25
+
+### 调整
+
+- **所有模型都显示完整 id**。广告识别四款分别显示 `silver-adskip-1-Pro`、`silver-adskip-1-mini-omega`、`silver-adskip-1-mini-alpha`、`silver-adskip-1-mini-beta`；语音识别七款分别显示 `Xenova/whisper-tiny`、`Xenova/whisper-base`、`Xenova/whisper-small`、`Xenova/whisper-medium` 及对应的 `.en` 版本。不再用「广告识别 mini Omega」「Whisper Tiny」这类简称，方便和模型仓库、模型卡一一对应。
+- 模型索引缓存版本升到 6，避免镜像旧索引把新名称挡住。
+
+## [2.8.8] - 2026-11-25
+
+### 调整
+
+- 模型列表里 Pro 直接显示完整名称 `silver-adskip-1-Pro`，不再用「广告识别 Pro」这个简称，方便和仓库、模型卡对上。
+- 模型索引的缓存版本升到 5，避免镜像的旧索引把新名称挡住。
+
 ## [2.8.7] - 2026-11-25
 
 ### 新增
