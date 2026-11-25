@@ -1077,15 +1077,19 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
             <div class="left" style="gap:14px"><iconify-icon icon="lucide:shield-check" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">隐私政策</div><div class="s" id="legalSubprivacy">数据存在哪里、会发往哪些第三方</div></div></div>
             <iconify-icon icon="lucide:chevron-right" style="color:var(--ol)"></iconify-icon>
           </div>
-          <div class="st-item" id="legalRowDisclaimer" style="border-bottom:none">
+          <div class="st-item" id="legalRowDisclaimer">
             <div class="left" style="gap:14px"><iconify-icon icon="lucide:scale" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">免责声明</div><div class="s" id="legalSubdisclaimer">内置源只做可用性检查，不检查合规</div></div></div>
+            <iconify-icon icon="lucide:chevron-right" style="color:var(--ol)"></iconify-icon>
+          </div>
+          <div class="st-item" id="legalRowTerms" style="border-bottom:none">
+            <div class="left" style="gap:14px"><iconify-icon icon="lucide:file-text" style="font-size:22px;color:var(--on-sf-v)"></iconify-icon><div><div class="t">用户协议</div><div class="s" id="legalSubterms">使用规则、投稿授权与知识产权</div></div></div>
             <iconify-icon icon="lucide:chevron-right" style="color:var(--ol)"></iconify-icon>
           </div>
         </div>
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.6 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.7 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -5695,9 +5699,11 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
       <p class="legal-p">这是一个浏览器端的影视聚合播放器，<b>不提供、不上传、不存储任何影视内容</b>。片子全部来自第三方接口。</p>
       <p class="legal-p">内置源只有一份地址清单。程序<b>只检查资源可用性，不检查合规</b>：源能正常响应，只说明技术上可达，不代表内容已获授权。若你认为某个源侵权，请直接寻找该源对应的运营方要求下架；本工具能做到的只是把它从内置清单里移除。</p>
       <p class="legal-p">画面、声音、观看记录都不出你的设备。广告识别模型在你的浏览器里本地运行。</p>
+      <p class="legal-p">用户协议说明使用规则、你提供素材的授权范围，以及出现争议时怎么处理。</p>
       <div class="legal-links">
         <button type="button" class="legal-link" data-doc="disclaimer">免责声明</button>
         <button type="button" class="legal-link" data-doc="privacy">隐私政策</button>
+        <button type="button" class="legal-link" data-doc="terms">用户协议</button>
       </div>
       <div class="legal-ver" id="legalVer">条款版本</div>
       <button type="button" class="legal-agree" id="legalAgree">同意并继续</button>
@@ -5724,8 +5730,8 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
     "https://cdn.jsdelivr.net/gh/silverbullet-liang/tvbox-web@main/legal/",
     "https://raw.githubusercontent.com/silverbullet-liang/tvbox-web/main/legal/"
   ];
-  var DOCS={privacy:{t:"隐私政策",f:"privacy.md"},disclaimer:{t:"免责声明",f:"disclaimer.md"}};
-  var KEY="tvbox_legal_agree", FALLBACK_VER="2026-11-23", DOC_V="2026-11-23";
+  var DOCS={privacy:{t:"隐私政策",f:"privacy.md"},disclaimer:{t:"免责声明",f:"disclaimer.md"},terms:{t:"用户协议",f:"terms.md"}};
+  var KEY="tvbox_legal_agree", FALLBACK_VER="2026-11-25", DOC_V="2026-11-25";
   var cache={}, busy={};
 
   function tfetch(u,ms){
@@ -5827,7 +5833,7 @@ if(window.matchMedia){window.matchMedia('(prefers-color-scheme: dark)').addEvent
     document.querySelectorAll("[data-doc]").forEach(function(b){
       b.onclick=function(e){e.preventDefault();openDoc(b.getAttribute("data-doc"));};
     });
-    ["privacy","disclaimer"].forEach(function(k){
+    ["privacy","disclaimer","terms"].forEach(function(k){
       var row=$("legalRow"+k.charAt(0).toUpperCase()+k.slice(1));
       var sub=$("legalSub"+k);
       if(sub&&!sub.dataset.base)sub.dataset.base=sub.textContent;
