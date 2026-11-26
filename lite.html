@@ -1980,20 +1980,21 @@ if(window.matchMedia){
     ms=ms||7000;
     if(!window.AbortController)return fetch(u);
     var c=new AbortController(), t=setTimeout(function(){try{c.abort()}catch(e){}},ms);
-    return fetch(u,{signal:c.signal}).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
+    return fetch(u,{signal:c.signal,cache:"no-store"}).then(function(r){clearTimeout(t);return r;},function(e){clearTimeout(t);throw e;});
   }
   function readRec(){try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;}}
   function writeRec(v){try{localStorage.setItem(KEY,JSON.stringify({v:v,at:Date.now()}));}catch(e){}}
   function curVer(){
     return (cache.disclaimer&&cache.disclaimer.ver)||(cache.privacy&&cache.privacy.ver)||FALLBACK_VER;
   }
-  function fetchDoc(k){
+  function fetchDoc(k,force){
+    if(force)cache[k]=null;
     if(cache[k])return Promise.resolve(cache[k]);
     if(busy[k])return busy[k];
     var i=0;
     function next(){
       if(i>=BASES.length)return Promise.reject(new Error("unreachable"));
-      var u=BASES[i++]+DOCS[k].f+"?v="+DOC_V;
+      var u=BASES[i++]+DOCS[k].f+"?v="+DOC_V+"&t="+Date.now();
       return tfetch(u,7000).then(function(r){
         if(!r.ok)throw new Error("http "+r.status);
         return r.text();
@@ -2035,7 +2036,7 @@ if(window.matchMedia){
     body.innerHTML='<p class="legal-err">正在读取…</p>';
     overlay.classList.add("show");
     overlay.scrollTop=0;
-    fetchDoc(k).then(function(d){
+    fetchDoc(k,true).then(function(d){
       body.innerHTML=md(d.text);
       var sub=$("legalSub"+k);
       if(sub&&d.ver)sub.textContent=sub.dataset.base+"　"+d.ver;
@@ -2093,7 +2094,6 @@ if(window.matchMedia){
     bind();
     var rec=readRec();
     if(!rec||!rec.v){showGate();return;}
-    if(Date.now()-(rec.at||0)<43200000)return;  /* 12 小时内不重复校验 */
     fetchDoc("disclaimer").then(function(d){
       if(d.ver&&d.ver!==rec.v)showGate();
       else writeRec(rec.v);
