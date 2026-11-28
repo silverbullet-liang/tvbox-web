@@ -1089,7 +1089,7 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
       </div>
 <div class="st-section">
         <div class="st-label">关于</div>
-        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.10 · 正式版</div></div></div></div></div>
+        <div class="st-card"><div class="st-item"><div class="left"><iconify-icon icon="lucide:info"></iconify-icon><div><div class="t">TVBox Web 影视中心</div><div class="s">v2.8.11 · 正式版</div></div></div></div></div>
       </div>
       <div style="height:40px"></div>
     </div>
@@ -1413,28 +1413,15 @@ iconify-icon{display:inline-block;width:1em;height:1em;flex-shrink:0;vertical-al
 </div>
 
 <script>
-const DEFAULT_SOURCES = [
-  /* 全部经内置代理实测可搜（2026-11）；源站均未开启 CORS，浏览器无法直连读响应 */
-  { key:"lzi",   name:"量子资源", api:"https://cj.lziapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"bfzy",  name:"暴风资源", api:"https://bfzyapi.com/api.php/provide/vod/",           type:1, enabled:true, search:true, cors:false },
-  { key:"ffzy",  name:"非凡资源", api:"https://api.ffzyapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"hnzy",  name:"红牛资源", api:"https://www.hongniuzy2.com/api.php/provide/vod/",     type:1, enabled:true, search:true, cors:false },
-  { key:"jyzy",  name:"金鹰资源", api:"https://jyzyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
-  { key:"huya",  name:"虎牙资源", api:"https://www.huyaapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"wujin", name:"无尽资源", api:"https://api.wujinapi.com/api.php/provide/vod/",       type:1, enabled:true, search:true, cors:false },
-  { key:"dytt",  name:"电影天堂", api:"https://caiji.dyttzyapi.com/api.php/provide/vod/",    type:1, enabled:true, search:true, cors:false },
-  { key:"bdzy",  name:"百度云盘", api:"https://api.apibdzy.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"mdy",   name:"魔都资源", api:"https://www.mdzyapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"zuid",  name:"最大资源", api:"https://api.zuidapi.com/api.php/provide/vod/",        type:1, enabled:true, search:true, cors:false },
-  { key:"zy360", name:"360资源",  api:"https://www.360zy.com/api.php/provide/vod/",          type:1, enabled:true, search:true, cors:false },
-  { key:"hhzy",  name:"火狐资源", api:"https://hhzyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
-  { key:"jszy",  name:"极速资源", api:"https://jszyapi.com/api.php/provide/vod/",            type:1, enabled:true, search:true, cors:false },
-  { key:"uku",   name:"U酷资源",  api:"https://api.ukuapi88.com/api.php/provide/vod/",       type:1, enabled:true, search:true, cors:false },
-  { key:"gszy",  name:"光速资源", api:"https://api.guangsuapi.com/api.php/provide/vod/",     type:1, enabled:true, search:true, cors:false },
-  { key:"ryzy",  name:"如意资源", api:"https://cj.rycjapi.com/api.php/provide/vod/",         type:1, enabled:true, search:true, cors:false },
-  { key:"sbzy",  name:"速播资源", api:"https://subocaiji.com/api.php/provide/vod/",          type:1, enabled:true, search:true, cors:false },
-  { key:"xlzy",  name:"新浪资源", api:"https://api.xinlangapi.com/xinlangapi.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
-  { key:"yzzy",  name:"优质资源", api:"https://api.yzzy-api.com/inc/apijson.php",            type:1, enabled:true, search:true, cors:false },
+const DEFAULT_SOURCES=[
+  /* 2026-11-28 逐个实测保留 7 源：两个关键词搜索均按关键词返回，播放地址齐全 */
+  { key:"ffzy", name:"非凡资源", api:"https://api.ffzyapi.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"hnzy", name:"红牛资源", api:"https://www.hongniuzy2.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"hhzy", name:"火狐资源", api:"https://hhzyapi.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"wujin", name:"无尽资源", api:"https://api.wujinapi.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"mdy", name:"魔都资源", api:"https://www.mdzyapi.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"uku", name:"U酷资源", api:"https://api.ukuapi88.com/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
+  { key:"myzy", name:"猫眼资源", api:"https://api.maoyanapi.top/api.php/provide/vod/", type:1, enabled:true, search:true, cors:false },
 ];
 const THEMES={
   purple:{light:{p:"#6750A4",onP:"#fff",pC:"#EADDFF",onPC:"#21005D",s:"#625B71",onS:"#fff",sC:"#E8DEF8",onSC:"#1D192B",t:"#7D5260",tC:"#FFD8E4"},dark:{p:"#D0BCFF",onP:"#381E72",pC:"#4F378B",onPC:"#EADDFF",s:"#CCC2DC",onS:"#332D41",sC:"#4A4458",onSC:"#E8DEF8",t:"#EFB8C8",tC:"#633B48"}},
